@@ -31,7 +31,8 @@ public class Main {
 
     public static void main(String[] args) {
         File dataRoot = Paths.get("data").toAbsolutePath().normalize().toFile();
-        File rawDataDir = Paths.get(dataRoot.getAbsolutePath() + "/processed_data").toAbsolutePath().normalize().toFile();
+        File rawDataDir = Paths.get(dataRoot.getAbsolutePath() + "/processed_data").toAbsolutePath().normalize()
+                .toFile();
         File inputDir = Paths.get(dataRoot.getAbsolutePath() + "/input").toAbsolutePath().normalize().toFile();
 
         Random rand = new Random(0L);
@@ -42,7 +43,7 @@ public class Main {
         File[] projects;
         try {
             projects = rawDataDir.listFiles();
-        } catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return;
         }
@@ -85,8 +86,8 @@ public class Main {
              */
             TypeSolver reflectionTypeSolver = new ReflectionTypeSolver();
             TypeSolver javaParserTypeSolver = new JavaParserTypeSolver(new File(srcDirAbsPath));
-            TypeSolver platform_framework_base = new JavaParserTypeSolver(new File(
-                    rawDataDir.getAbsolutePath() + "/platformframeworksbase"));
+            TypeSolver platform_framework_base = new JavaParserTypeSolver(
+                    new File(rawDataDir.getAbsolutePath() + "/platformframeworksbase"));
             reflectionTypeSolver.setParent(reflectionTypeSolver);
             CombinedTypeSolver combinedSolver = new CombinedTypeSolver();
             combinedSolver.add(reflectionTypeSolver);
@@ -95,7 +96,7 @@ public class Main {
             JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedSolver);
             JavaParser.getStaticConfiguration().setSymbolResolver(symbolSolver);
 
-//            String out = cmd.getOptionValue("outputdir");
+            // String out = cmd.getOptionValue("outputdir");
 
             try {
                 fileArrayList.forEach(javaFile -> {
