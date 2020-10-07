@@ -12,6 +12,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Random;
@@ -43,7 +44,7 @@ public class Main {
             e.printStackTrace();
             return;
         }
-        for (File projectRootDir : projects) {
+        for (File projectRootDir : Arrays.copyOfRange(projects, 0, 5)) {
             if (!projectRootDir.isDirectory())
                 continue;
 
