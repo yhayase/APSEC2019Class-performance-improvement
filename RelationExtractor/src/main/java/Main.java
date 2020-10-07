@@ -27,6 +27,8 @@ public class Main {
     final static int[] resolveSuccess = { 0 };
     final static int[] resolveFailed = { 0 };
 
+    final static boolean splitsByProject = true;
+
     public static void main(String[] args) {
         File dataRoot = Paths.get("data").toAbsolutePath().normalize().toFile();
         File rawDataDir = Paths.get(dataRoot.getAbsolutePath() + "/processed_data").toAbsolutePath().normalize().toFile();
@@ -44,7 +46,8 @@ public class Main {
             e.printStackTrace();
             return;
         }
-        for (File projectRootDir : Arrays.copyOfRange(projects, 0, 5)) {
+
+        for (File projectRootDir : Arrays.copyOfRange(projects, 0, 10)) {
             if (!projectRootDir.isDirectory())
                 continue;
 
@@ -99,33 +102,39 @@ public class Main {
                     FILE_NUM[0] += 1;
                     List<String> destDirAbsPathList = new ArrayList<>();
 
-                    // //ファイル単位でデータセットを分割する場合ここ使う
-                    // int randomNum = rand.nextInt(5) + 1;
-                    // String trainORtest;
-                    // for (int i = 1; i <= 5; i++){
-                    // if (i == randomNum) trainORtest = "test";
-                    // else trainORtest = "train";
-                    // String destDirPath = out + i + "/" + trainORtest;
-                    // File destDir = Paths.get(destDirPath).toAbsolutePath().normalize().toFile();
-                    // String destDirAbsPath = destDir.getAbsolutePath();
-                    // destDirAbsPathList.add(destDirAbsPath);
-                    // }
-                    // //ここまで
-                    // データセットをプロジェクトごとに分割する場合ここ使う
-                    String trainORtest;
-                    for (int i = 1; i <= 5; i++) {
-                        if (i == testProjectIndex)
-                            trainORtest = "test";
-                        else
-                            trainORtest = "train";
-//                        String destDirPath = out + i + "/" + trainORtest;
-                        String destDirPath = inputDir.getAbsolutePath() + "/" + i + "/" + trainORtest;
+                    if (!splitsByProject) {
+                        // ファイル単位でデータセットを分割する場合ここ使う
+                        int randomNum = rand.nextInt(5) + 1;
+                        String trainORtest;
+                        for (int i = 1; i <= 5; i++) {
+                            if (i == randomNum)
+                                trainORtest = "test";
+                            else
+                                trainORtest = "train";
+                            // String destDirPath = out + i + "/" + trainORtest;
+                            String destDirPath = inputDir.getAbsolutePath() + "/" + i + "/" + trainORtest;
+                            File destDir = Paths.get(destDirPath).toAbsolutePath().normalize().toFile();
+                            String destDirAbsPath = destDir.getAbsolutePath();
+                            destDirAbsPathList.add(destDirAbsPath);
+                        }
+                        // ここまで
+                    } else {
+                        // データセットをプロジェクトごとに分割する場合ここ使う
+                        String trainORtest;
+                        for (int i = 1; i <= 5; i++) {
+                            if (i == testProjectIndex)
+                                trainORtest = "test";
+                            else
+                                trainORtest = "train";
+                            // String destDirPath = out + i + "/" + trainORtest;
+                            String destDirPath = inputDir.getAbsolutePath() + "/" + i + "/" + trainORtest;
 
-                        File destDir = Paths.get(destDirPath).toAbsolutePath().normalize().toFile();
-                        String destDirAbsPath = destDir.getAbsolutePath();
-                        destDirAbsPathList.add(destDirAbsPath);
+                            File destDir = Paths.get(destDirPath).toAbsolutePath().normalize().toFile();
+                            String destDirAbsPath = destDir.getAbsolutePath();
+                            destDirAbsPathList.add(destDirAbsPath);
+                        }
+                        // ここまで
                     }
-                    // ここまで
 
                     try {
                         CompilationUnit cu = JavaParser.parse(javaFile);
