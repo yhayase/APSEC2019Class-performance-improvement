@@ -52,16 +52,23 @@ public class Main {
 
             // データセットをプロジェクトごとに分割する場合ここ使う
             int testProjectIndex;
-            if (projectCount < 4)
+            int valProjectIndex;
+            if (projectCount < 4) {
                 testProjectIndex = 1;
-            else if (projectCount < 8)
+                valProjectIndex = 2;
+            } else if (projectCount < 8) {
                 testProjectIndex = 2;
-            else if (projectCount < 12)
+                valProjectIndex = 3;
+            } else if (projectCount < 12) {
                 testProjectIndex = 3;
-            else if (projectCount < 16)
+                valProjectIndex = 4;
+            } else if (projectCount < 16) {
                 testProjectIndex = 4;
-            else
+                valProjectIndex = 5;
+            } else {
                 testProjectIndex = 5;
+                valProjectIndex = 1;
+            }
             projectCount++;
             // ここまで
 
@@ -119,14 +126,16 @@ public class Main {
                         // ここまで
                     } else {
                         // データセットをプロジェクトごとに分割する場合ここ使う
-                        String trainORtest;
+                        String trainOrValOrTest;
                         for (int i = 1; i <= 5; i++) {
                             if (i == testProjectIndex)
-                                trainORtest = "test";
+                                trainOrValOrTest = "test";
+                            else if (i == valProjectIndex)
+                                trainOrValOrTest = "val";
                             else
-                                trainORtest = "train";
+                                trainOrValOrTest = "train";
                             // String destDirPath = out + i + "/" + trainORtest;
-                            String destDirPath = inputDir.getAbsolutePath() + "/" + i + "/" + trainORtest;
+                            String destDirPath = inputDir.getAbsolutePath() + "/" + i + "/" + trainOrValOrTest;
 
                             File destDir = Paths.get(destDirPath).toAbsolutePath().normalize().toFile();
                             String destDirAbsPath = destDir.getAbsolutePath();
