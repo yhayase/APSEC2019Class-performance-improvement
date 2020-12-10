@@ -13,6 +13,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Scanner;
 
 public class Resolver {
@@ -24,7 +25,7 @@ public class Resolver {
     private HashMap<String, ArrayList<String>> fieldsInMethod;
     private HashMap<String, ArrayList<String>> returnType;
 
-    private HashMap<String, String> methodASTPaths;
+    private Map<String, String> methodASTPaths;
 
     private HashSet<String> declarationClassSet;
     private HashSet<String> extendedClassSet;
@@ -105,7 +106,7 @@ public class Resolver {
         return fieldType;
     }
 
-    public HashMap<String, String> getMethodASTPaths() {
+    public Map<String, String> getMethodASTPaths() {
         return methodASTPaths;
     }
 

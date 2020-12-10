@@ -14,6 +14,7 @@ import java.io.PrintWriter;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Map.Entry;
@@ -151,16 +152,19 @@ public class Main {
                         for (String destDirAbsPath : destDirAbsPathList) {
                             makeJsons(destDirAbsPath, resolver, fileName);
 
-                            File file = new File(
-                                    Paths.get(destDirAbsPath, "methodASTPath", fileName + ".txt").toString());
-                            file.getParentFile().mkdirs();
-                            try (PrintWriter out = new PrintWriter(file)) {
-                                for (Entry<String, String> entry : resolver.getMethodASTPaths().entrySet()) {
-                                    String declarationMethodName = entry.getKey();
-                                    String astPath = entry.getValue();
-                                    out.print(declarationMethodName);
-                                    out.print(' ');
-                                    out.println(astPath);
+                            Map<String, String> methodASTPaths = resolver.getMethodASTPaths();
+                            if (!methodASTPaths.isEmpty()) {
+                                File file = new File(
+                                        Paths.get(destDirAbsPath, "methodASTPath", fileName + ".txt").toString());
+                                file.getParentFile().mkdirs();
+                                try (PrintWriter out = new PrintWriter(file)) {
+                                    for (Entry<String, String> entry : methodASTPaths.entrySet()) {
+                                        String declarationMethodName = entry.getKey();
+                                        String astPath = entry.getValue();
+                                        out.print(declarationMethodName);
+                                        out.print(' ');
+                                        out.println(astPath);
+                                    }
                                 }
                             }
                         }
