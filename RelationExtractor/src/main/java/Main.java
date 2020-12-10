@@ -10,11 +10,13 @@ import org.apache.commons.io.FilenameUtils;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Random;
+import java.util.Map.Entry;
 
 /**
  * JavaMethodParserのエントリーポイント用クラス
@@ -148,6 +150,19 @@ public class Main {
                         String fileName = getPrefix(javaFile.getName());
                         for (String destDirAbsPath : destDirAbsPathList) {
                             makeJsons(destDirAbsPath, resolver, fileName);
+
+                            File file = new File(
+                                    Paths.get(destDirAbsPath, "methodASTPath", fileName + ".txt").toString());
+                            file.getParentFile().mkdirs();
+                            try (PrintWriter out = new PrintWriter(file)) {
+                                for (Entry<String, String> entry : resolver.getMethodASTPaths().entrySet()) {
+                                    String declarationMethodName = entry.getKey();
+                                    String astPath = entry.getValue();
+                                    out.print(declarationMethodName);
+                                    out.print(' ');
+                                    out.println(astPath);
+                                }
+                            }
                         }
 
                     } catch (FileNotFoundException ex) {
@@ -177,7 +192,8 @@ public class Main {
         resolver.getRelations().entrySet().forEach(relation -> {
             try {
                 JsonGenerator jsonGenerator = new JsonGenerator(relation.getValue(), true);
-                jsonGenerator.saveFile(Paths.get(destDirAbsPath, relation.getKey(), fileName + ".json").toString());
+                jsonGenerator.saveFile(
+                        Paths.get(destDirAbsPath, "relations", relation.getKey(), fileName + ".json").toString());
             } catch (IOException io) {
                 System.out.print("\r" + "makeJson Error");
                 System.out.println(io);

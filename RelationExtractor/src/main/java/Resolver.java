@@ -11,7 +11,6 @@ import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
@@ -24,9 +23,8 @@ public class Resolver {
     private HashMap<String, ArrayList<String>> methodCall;
     private HashMap<String, ArrayList<String>> fieldsInMethod;
     private HashMap<String, ArrayList<String>> returnType;
-    private HashMap<String, ArrayList<String>> methodASTPaths;
 
-    private HashMap<String, HashMap<String, ArrayList<String>>> relations;
+    private HashMap<String, String> methodASTPaths;
 
     private HashSet<String> declarationClassSet;
     private HashSet<String> extendedClassSet;
@@ -57,9 +55,8 @@ public class Resolver {
         fieldsInMethod = new HashMap<>();
         returnType = new HashMap<>();
         fieldType = new HashMap<>();
-        methodASTPaths = new HashMap<>();
 
-        relations = new HashMap<>();
+        methodASTPaths = new HashMap<>();
 
         doNameResolve = true;
         resolveSuccess = 0;
@@ -108,7 +105,7 @@ public class Resolver {
         return fieldType;
     }
 
-    public HashMap<String, ArrayList<String>> getMethodASTPaths() {
+    public HashMap<String, String> getMethodASTPaths() {
         return methodASTPaths;
     }
 
@@ -142,20 +139,21 @@ public class Resolver {
         fieldType = new HashMap<>();
     }
 
-    private void getRelationIfExists(String relationName, HashMap<String, ArrayList<String>> relation) {
+    private void getRelationIfExists(HashMap<String, HashMap<String, ArrayList<String>>> relations, String relationName,
+            HashMap<String, ArrayList<String>> relation) {
         if (!relation.isEmpty())
             relations.put(relationName, relation);
     }
 
     public HashMap<String, HashMap<String, ArrayList<String>>> getRelations() {
-        getRelationIfExists("classExtends", getClassExtends());
-        getRelationIfExists("methodInClass", getMethodsInClass());
-        getRelationIfExists("fieldInClass", getFieldsInClass());
-        getRelationIfExists("methodCall", getMethodCall());
-        getRelationIfExists("fieldInMethod", getFieldsInMethod());
-        getRelationIfExists("returnType", getReturnType());
-        getRelationIfExists("fieldType", getFieldType());
-        getRelationIfExists("methodASTPaths", getMethodASTPaths());
+        HashMap<String, HashMap<String, ArrayList<String>>> relations = new HashMap<>();
+        getRelationIfExists(relations, "classExtends", getClassExtends());
+        getRelationIfExists(relations, "methodInClass", getMethodsInClass());
+        getRelationIfExists(relations, "fieldInClass", getFieldsInClass());
+        getRelationIfExists(relations, "methodCall", getMethodCall());
+        getRelationIfExists(relations, "fieldInMethod", getFieldsInMethod());
+        getRelationIfExists(relations, "returnType", getReturnType());
+        getRelationIfExists(relations, "fieldType", getFieldType());
         return relations;
     }
 
@@ -241,7 +239,7 @@ public class Resolver {
 
                     try (Scanner sc = new Scanner(process.getInputStream())) {
                         String line = sc.nextLine();
-                        methodASTPaths.put(declarationMethodName, new ArrayList<>(Arrays.asList(line)));
+                        methodASTPaths.put(declarationMethodName, line);
                     }
                     // try (BufferedReader reader = new BufferedReader(new
                     // InputStreamReader(process.getInputStream()))) {
