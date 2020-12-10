@@ -8,9 +8,13 @@ import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Scanner;
 
 public class Resolver {
     private HashMap<String, ArrayList<String>> classExtends;
@@ -20,6 +24,7 @@ public class Resolver {
     private HashMap<String, ArrayList<String>> methodCall;
     private HashMap<String, ArrayList<String>> fieldsInMethod;
     private HashMap<String, ArrayList<String>> returnType;
+    private HashMap<String, ArrayList<String>> methodASTPaths;
 
     private HashMap<String, HashMap<String, ArrayList<String>>> relations;
 
@@ -52,6 +57,7 @@ public class Resolver {
         fieldsInMethod = new HashMap<>();
         returnType = new HashMap<>();
         fieldType = new HashMap<>();
+        methodASTPaths = new HashMap<>();
 
         relations = new HashMap<>();
 
@@ -102,6 +108,10 @@ public class Resolver {
         return fieldType;
     }
 
+    public HashMap<String, ArrayList<String>> getMethodASTPaths() {
+        return methodASTPaths;
+    }
+
     public boolean isParam1inParam2(String part, String str) {
         if (str.matches(".*" + part + ".*")) {
             return true;
@@ -145,6 +155,7 @@ public class Resolver {
         getRelationIfExists("fieldInMethod", getFieldsInMethod());
         getRelationIfExists("returnType", getReturnType());
         getRelationIfExists("fieldType", getFieldType());
+        getRelationIfExists("methodASTPaths", getMethodASTPaths());
         return relations;
     }
 
@@ -217,6 +228,30 @@ public class Resolver {
                 strings = new ArrayList<>();
                 resolveReturnType(methodDeclaration, strings, resolvedDeclarationClassName);
                 returnType.put(declarationMethodName, strings);
+
+                ProcessBuilder pb = new ProcessBuilder("java", "-cp",
+                        "code2seq/JavaExtractor/JPredict/target/JavaExtractor-0.0.1-SNAPSHOT.jar", "JavaExtractor.App",
+                        "--max_path_length", "8", "--max_path_width", "2", "--num_threads", "64", "--file",
+                        "/dev/stdin");
+                try {
+                    Process process = pb.start();
+                    try (PrintStream out = new PrintStream(process.getOutputStream())) {
+                        out.println(methodDeclaration);
+                    }
+
+                    try (Scanner sc = new Scanner(process.getInputStream())) {
+                        String line = sc.nextLine();
+                        methodASTPaths.put(declarationMethodName, new ArrayList<>(Arrays.asList(line)));
+                    }
+                    // try (BufferedReader reader = new BufferedReader(new
+                    // InputStreamReader(process.getInputStream()))) {
+                    // String line = reader.readLine();
+                    // methodASTPaths.put(declarationMethodName, new
+                    // ArrayList<>(Arrays.asList(line)));
+                    // }
+                } catch (IOException e) {
+                    System.err.println(e);
+                }
             });
         });
     }
