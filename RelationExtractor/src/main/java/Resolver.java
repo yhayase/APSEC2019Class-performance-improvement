@@ -229,9 +229,8 @@ public class Resolver {
                 returnType.put(declarationMethodName, strings);
 
                 ProcessBuilder pb = new ProcessBuilder("java", "-cp",
-                        "code2seq/JavaExtractor/JPredict/target/JavaExtractor-0.0.1-SNAPSHOT.jar", "JavaExtractor.App",
-                        "--max_path_length", "8", "--max_path_width", "2", "--num_threads", "64", "--file",
-                        "/dev/stdin");
+                        "JPredict/target/JavaExtractor-0.0.1-SNAPSHOT.jar", "JavaExtractor.App", "--max_path_length",
+                        "8", "--max_path_width", "2", "--num_threads", "64", "--file", "/dev/stdin");
                 try {
                     Process process = pb.start();
                     try (PrintStream out = new PrintStream(process.getOutputStream())) {
