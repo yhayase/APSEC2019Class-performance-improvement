@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 public class Resolver {
@@ -228,24 +229,24 @@ public class Resolver {
                 resolveReturnType(methodDeclaration, strings, resolvedDeclarationClassName);
                 returnType.put(declarationMethodName, strings);
 
-                ProcessBuilder pb = new ProcessBuilder("java", "-cp",
-                        "code2seq/JavaExtractor/JPredict/target/JavaExtractor-0.0.1-SNAPSHOT.jar", "JavaExtractor.App",
-                        "--max_path_length", "8", "--max_path_width", "2", "--num_threads", "64", "--file",
-                        "/dev/stdin");
-                try {
-                    Process process = pb.start();
-                    try (PrintStream out = new PrintStream(process.getOutputStream())) {
-                        out.println(methodDeclaration);
-                    }
+                if (!methodDeclaration.isAbstract()) {
+                    ProcessBuilder pb = new ProcessBuilder("java", "-cp",
+                            "code2seq/JavaExtractor/JPredict/target/JavaExtractor-0.0.1-SNAPSHOT.jar",
+                            "JavaExtractor.App", "--max_path_length", "8", "--max_path_width", "2", "--num_threads",
+                            "64", "--file", "/dev/stdin");
+                    try {
+                        Process process = pb.start();
+                        try (PrintStream out = new PrintStream(process.getOutputStream())) {
+                            out.println(methodDeclaration);
+                        }
 
-                    try (Scanner sc = new Scanner(process.getInputStream())) {
-                        if (sc.hasNextLine()) { // 対象のメソッドが抽象メソッドである場合，false
+                        try (Scanner sc = new Scanner(process.getInputStream())) {
                             String line = sc.nextLine();
                             methodASTPaths.put(declarationMethodName, line);
                         }
+                    } catch (IOException e) {
+                        System.err.println(e);
                     }
-                } catch (IOException e) {
-                    System.err.println(e);
                 }
             });
         });
