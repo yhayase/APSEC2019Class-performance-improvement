@@ -238,15 +238,11 @@ public class Resolver {
                     }
 
                     try (Scanner sc = new Scanner(process.getInputStream())) {
-                        String line = sc.nextLine();
-                        methodASTPaths.put(declarationMethodName, line);
+                        if (sc.hasNextLine()) { // 対象のメソッドが抽象メソッドである場合，false
+                            String line = sc.nextLine();
+                            methodASTPaths.put(declarationMethodName, line);
+                        }
                     }
-                    // try (BufferedReader reader = new BufferedReader(new
-                    // InputStreamReader(process.getInputStream()))) {
-                    // String line = reader.readLine();
-                    // methodASTPaths.put(declarationMethodName, new
-                    // ArrayList<>(Arrays.asList(line)));
-                    // }
                 } catch (IOException e) {
                     System.err.println(e);
                 }
