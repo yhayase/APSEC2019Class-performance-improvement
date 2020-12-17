@@ -12,38 +12,41 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 public class FilePathOrganizer {
-    public static void main(String[] args){
-    
+    public static void main(String[] args) {
+
         File dataRoot = Paths.get("data").toAbsolutePath().normalize().toFile();
-        File rawTrainDataDir = Paths.get(dataRoot.getAbsolutePath() + "/evaldata/train")
-                                    .toAbsolutePath().normalize().toFile();
-        File rawTestDataDir = Paths.get(dataRoot.getAbsolutePath() + "/evaldata/test")
-                                   .toAbsolutePath().normalize().toFile();
-        String processedDataDirPath = Paths.get(dataRoot.getAbsolutePath() + "/processed_data")
-                                     .toAbsolutePath().normalize().toString();
+        File rawTrainDataDir = Paths.get(dataRoot.getAbsolutePath() + "/evaldata/training").toAbsolutePath().normalize()
+                .toFile();
+        File rawTestDataDir = Paths.get(dataRoot.getAbsolutePath() + "/evaldata/test").toAbsolutePath().normalize()
+                .toFile();
+        File rawValDataDir = Paths.get(dataRoot.getAbsolutePath() + "/evaldata/validation").toAbsolutePath().normalize()
+                .toFile();
+        String processedDataDirPath = Paths.get(dataRoot.getAbsolutePath() + "/processed_data").toAbsolutePath()
+                .normalize().toString();
         File[] trainProjects = rawTrainDataDir.listFiles();
         File[] testProjects = rawTestDataDir.listFiles();
+        File[] valProjects = rawValDataDir.listFiles();
         List<File> projectRootDirectories = new ArrayList<>();
         Collections.addAll(projectRootDirectories, trainProjects);
         Collections.addAll(projectRootDirectories, testProjects);
+        Collections.addAll(projectRootDirectories, valProjects);
 
-        for (File projectRootDir : projectRootDirectories){
-            if (!projectRootDir.isDirectory()) continue;
+        for (File projectRootDir : projectRootDirectories) {
+            if (!projectRootDir.isDirectory())
+                continue;
             String projectName = formatDirName(getPrefix(projectRootDir.getName()));
 
             ArrayList<File> javaFiles = getJavaFilesRecursively(projectRootDir);
-            try{
+            try {
                 javaFiles.forEach(javaFile -> {
                     try {
                         CompilationUnit cu = JavaParser.parse(javaFile);
                         String filePathInPackage;
-                        if (cu.getPackageDeclaration().isPresent()){
+                        if (cu.getPackageDeclaration().isPresent()) {
                             filePathInPackage = cu.getPackageDeclaration().get().getNameAsString().replace(".", "/");
                         } else {
-                            System.out.println("\n"
-                                    + javaFile.getName()
-                                    + "Since there is no package declaration, " +
-                                    "it is directly put under the root directory");
+                            System.out.println("\n" + javaFile.getName() + "Since there is no package declaration, "
+                                    + "it is directly put under the root directory");
                             filePathInPackage = "";
                         }
                         String javaFileName = javaFile.getName();
@@ -51,25 +54,25 @@ public class FilePathOrganizer {
                         System.out.print("\r" + directories.toAbsolutePath() + javaFileName);
                         try {
                             Files.createDirectories(directories);
-                        } catch (FileAlreadyExistsException al){
+                        } catch (FileAlreadyExistsException al) {
                             System.out.println(al);
-                        } catch (IOException e){
+                        } catch (IOException e) {
                             System.out.println("Directory creation failed\n" + e);
                         }
                         Path from = Paths.get(javaFile.getAbsolutePath());
                         Path to = Paths.get(processedDataDirPath, projectName, filePathInPackage, javaFileName);
                         try {
                             Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
-                        } catch (Exception e){
+                        } catch (Exception e) {
                             System.out.println("Copy failed\n" + e.fillInStackTrace());
                         }
-                    } catch (ParseProblemException p){
+                    } catch (ParseProblemException p) {
                         System.out.println(p);
-                    } catch (Exception e){
+                    } catch (Exception e) {
                         System.out.println(e);
                     }
                 });
-            } catch (NoSuchElementException e){
+            } catch (NoSuchElementException e) {
                 System.out.println(e);
             }
         }
@@ -78,13 +81,16 @@ public class FilePathOrganizer {
 
     /**
      * Recursively search for Java files contained inside the directories
+     * 
      * @param dir A File object representing the directory to be searched
-     * @return An ArrayList of File objects representing the Java files contained within
+     * @return An ArrayList of File objects representing the Java files contained
+     *         within
      */
     private static ArrayList<File> getJavaFilesRecursively(File dir) {
         ArrayList<File> fileList = new ArrayList<>();
         File[] files = dir.listFiles();
-        if (files == null) return new ArrayList<>();
+        if (files == null)
+            return new ArrayList<>();
 
         for (File file : files) {
             if (!file.exists()) {
@@ -98,7 +104,7 @@ public class FilePathOrganizer {
         return fileList;
     }
 
-    private static String formatDirName(String dirName){
+    private static String formatDirName(String dirName) {
         return dirName.replace("-", "").replace("_", "");
     }
 

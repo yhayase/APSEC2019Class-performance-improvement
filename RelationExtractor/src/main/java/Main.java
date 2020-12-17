@@ -1,3 +1,14 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Random;
+import java.util.stream.Collectors;
+
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
@@ -5,19 +16,8 @@ import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
-import org.apache.commons.io.FilenameUtils;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Random;
-import java.util.Map.Entry;
+import org.apache.commons.io.FilenameUtils;
 
 /**
  * JavaMethodParserのエントリーポイント用クラス
@@ -49,30 +49,28 @@ public class Main {
             e.printStackTrace();
             return;
         }
+        LinkedList<String> projectNames1 = new LinkedList<>(Arrays.asList(projects).stream()
+                .map(projectRootDir -> formatDirName(getPrefix(projectRootDir.getName())))
+                .collect(Collectors.toList()));
+        LinkedList<String> projectNames2 = new LinkedList<>();
         for (File projectRootDir : projects) {
             if (!projectRootDir.isDirectory())
                 continue;
 
-            // データセットをプロジェクトごとに分割する場合ここ使う
-            int testProjectIndex;
-            if (projectCount < 4)
-                testProjectIndex = 1;
-            else if (projectCount < 8)
-                testProjectIndex = 2;
-            else if (projectCount < 12)
-                testProjectIndex = 3;
-            else if (projectCount < 16)
-                testProjectIndex = 4;
-            else
-                testProjectIndex = 5;
-            projectCount++;
-            // ここまで
+            int testProjectIndex = projectCount % 5 + 1;
+            projectCount += 1;
 
             resolveSuccess[0] = 0;
             resolveFailed[0] = 0;
             String formattedProjectName = formatDirName(getPrefix(projectRootDir.getName()));
             System.out.println("\n\n-----\n");
             System.out.println(formattedProjectName);
+
+            projectNames1.removeFirstOccurrence(formattedProjectName);
+            projectNames2.addLast(formattedProjectName);
+            System.out.println(projectNames1);
+            System.out.println(projectNames2);
+            System.out.println("testProjectIndex : " + testProjectIndex);
 
             String srcDirAbsPath = projectRootDir.getAbsolutePath();
 
@@ -87,98 +85,95 @@ public class Main {
              */
             TypeSolver reflectionTypeSolver = new ReflectionTypeSolver();
             TypeSolver javaParserTypeSolver = new JavaParserTypeSolver(new File(srcDirAbsPath));
-            TypeSolver platform_framework_base = new JavaParserTypeSolver(
-                    new File(rawDataDir.getAbsolutePath() + "/platformframeworksbase"));
+            // TypeSolver platform_framework_base = new JavaParserTypeSolver(
+            // new File(rawDataDir.getAbsolutePath() + "/platformframeworksbase"));
             reflectionTypeSolver.setParent(reflectionTypeSolver);
             CombinedTypeSolver combinedSolver = new CombinedTypeSolver();
             combinedSolver.add(reflectionTypeSolver);
             combinedSolver.add(javaParserTypeSolver);
-            combinedSolver.add(platform_framework_base);
+            // combinedSolver.add(platform_framework_base);
             JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedSolver);
             JavaParser.getStaticConfiguration().setSymbolResolver(symbolSolver);
 
             // String out = cmd.getOptionValue("outputdir");
 
-            try {
-                fileArrayList.forEach(javaFile -> {
-                    FILE_NUM[0] += 1;
-                    List<String> destDirAbsPathList = new ArrayList<>();
+            fileArrayList.forEach(javaFile -> {
+                FILE_NUM[0] += 1;
+                List<String> destDirAbsPathList = new ArrayList<>();
 
-                    if (!splitsByProject) {
-                        // ファイル単位でデータセットを分割する場合ここ使う
-                        int randomNum = rand.nextInt(5) + 1;
-                        String trainORtest;
-                        for (int i = 1; i <= 5; i++) {
-                            if (i == randomNum)
-                                trainORtest = "test";
-                            else
-                                trainORtest = "train";
-                            // String destDirPath = out + i + "/" + trainORtest;
-                            String destDirPath = inputDir.getAbsolutePath() + "/" + i + "/" + trainORtest;
-                            File destDir = Paths.get(destDirPath).toAbsolutePath().normalize().toFile();
-                            String destDirAbsPath = destDir.getAbsolutePath();
-                            destDirAbsPathList.add(destDirAbsPath);
-                        }
-                        // ここまで
-                    } else {
-                        // データセットをプロジェクトごとに分割する場合ここ使う
-                        String trainORtest;
-                        for (int i = 1; i <= 5; i++) {
-                            if (i == testProjectIndex)
-                                trainORtest = "test";
-                            else
-                                trainORtest = "train";
-                            // String destDirPath = out + i + "/" + trainORtest;
-                            String destDirPath = inputDir.getAbsolutePath() + "/" + i + "/" + trainORtest;
+                if (!splitsByProject) {
+                    // ファイル単位でデータセットを分割する場合ここ使う
+                    int randomNum = rand.nextInt(5) + 1;
+                    String trainORtest;
+                    for (int i = 1; i <= 5; i++) {
+                        if (i == randomNum)
+                            trainORtest = "test";
+                        else
+                            trainORtest = "train";
+                        // String destDirPath = out + i + "/" + trainORtest;
+                        String destDirPath = inputDir.getAbsolutePath() + "/" + i + "/" + trainORtest;
+                        File destDir = Paths.get(destDirPath).toAbsolutePath().normalize().toFile();
+                        String destDirAbsPath = destDir.getAbsolutePath();
+                        destDirAbsPathList.add(destDirAbsPath);
+                    }
+                    // ここまで
+                } else {
+                    // データセットをプロジェクトごとに分割する場合ここ使う
+                    String trainORtest;
+                    for (int i = 1; i <= 5; i++) {
+                        if (i == testProjectIndex)
+                            trainORtest = "test";
+                        else
+                            trainORtest = "train";
+                        // String destDirPath = out + i + "/" + trainORtest;
+                        String destDirPath = inputDir.getAbsolutePath() + "/" + i + "/" + trainORtest;
 
-                            File destDir = Paths.get(destDirPath).toAbsolutePath().normalize().toFile();
-                            String destDirAbsPath = destDir.getAbsolutePath();
-                            destDirAbsPathList.add(destDirAbsPath);
-                        }
-                        // ここまで
+                        File destDir = Paths.get(destDirPath).toAbsolutePath().normalize().toFile();
+                        String destDirAbsPath = destDir.getAbsolutePath();
+                        destDirAbsPathList.add(destDirAbsPath);
+                    }
+                    // ここまで
+                }
+
+                try {
+                    CompilationUnit cu = JavaParser.parse(javaFile);
+                    System.out.print("\rParsing : " + javaFile.getName());
+
+                    Resolver resolver = new Resolver(true);
+                    resolver.execute(cu);
+
+                    resolveSuccess[0] += resolver.getResolveSuccess();
+                    resolveFailed[0] += resolver.getResolveFailed();
+
+                    String fileName = getPrefix(javaFile.getName());
+                    for (String destDirAbsPath : destDirAbsPathList) {
+                        makeJsons(destDirAbsPath, resolver, fileName);
+
+                        // Map<String, String> methodASTPaths = resolver.getMethodASTPaths();
+                        // if (!methodASTPaths.isEmpty()) {
+                        // File file = new File(
+                        // Paths.get(destDirAbsPath, "methodASTPath", fileName + ".txt").toString());
+                        // file.getParentFile().mkdirs();
+                        // try (PrintWriter out = new PrintWriter(file)) {
+                        // for (Entry<String, String> entry : methodASTPaths.entrySet()) {
+                        // String declarationMethodName = entry.getKey();
+                        // String astPath = entry.getValue();
+                        // out.print(declarationMethodName);
+                        // out.print(' ');
+                        // out.println(astPath);
+                        // }
+                        // }
+                        // }
                     }
 
-                    try {
-                        CompilationUnit cu = JavaParser.parse(javaFile);
-                        System.out.print("\rParsing : " + javaFile.getName());
-
-                        Resolver resolver = new Resolver(true);
-                        resolver.execute(cu);
-
-                        resolveSuccess[0] += resolver.getResolveSuccess();
-                        resolveFailed[0] += resolver.getResolveFailed();
-
-                        String fileName = getPrefix(javaFile.getName());
-                        for (String destDirAbsPath : destDirAbsPathList) {
-                            makeJsons(destDirAbsPath, resolver, fileName);
-
-                            Map<String, String> methodASTPaths = resolver.getMethodASTPaths();
-                            if (!methodASTPaths.isEmpty()) {
-                                File file = new File(
-                                        Paths.get(destDirAbsPath, "methodASTPath", fileName + ".txt").toString());
-                                file.getParentFile().mkdirs();
-                                try (PrintWriter out = new PrintWriter(file)) {
-                                    for (Entry<String, String> entry : methodASTPaths.entrySet()) {
-                                        String declarationMethodName = entry.getKey();
-                                        String astPath = entry.getValue();
-                                        out.print(declarationMethodName);
-                                        out.print(' ');
-                                        out.println(astPath);
-                                    }
-                                }
-                            }
-                        }
-
-                    } catch (FileNotFoundException ex) {
-                        System.out.println("\n" + ex);
-                    }
-                });
-            } catch (NoSuchElementException e) {
-                System.out.println("\n" + e);
-            }
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace(System.err);
+                }
+            });
             totalResolveSuccess[0] += resolveSuccess[0];
             totalResolveFailed[0] += resolveFailed[0];
-            System.out.println("\nresolveSuccess : " + resolveSuccess[0]);
+            System.out.println();
+            System.out.println("resolveSuccess : " + resolveSuccess[0]);
             System.out.println("resolveFailed : " + resolveFailed[0]);
         }
 
