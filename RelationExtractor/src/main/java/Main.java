@@ -97,8 +97,9 @@ public class Main {
 
             // String out = cmd.getOptionValue("outputdir");
 
-            fileArrayList.forEach(javaFile -> {
+            for (File javaFile : fileArrayList) {
                 FILE_NUM[0] += 1;
+                String parentRelPath = javaFile.getAbsolutePath().replace(rawDataDir.getAbsolutePath(), "");
                 List<String> destDirAbsPathList = new ArrayList<>();
 
                 if (!splitsByProject) {
@@ -135,9 +136,10 @@ public class Main {
                     // ここまで
                 }
 
+                System.out.print("\r");
                 try {
                     CompilationUnit cu = JavaParser.parse(javaFile);
-                    System.out.print("\rParsing : " + javaFile.getName());
+                    System.out.print("Parsing : " + javaFile.getName());
 
                     Resolver resolver = new Resolver(true);
                     resolver.execute(cu);
@@ -147,7 +149,7 @@ public class Main {
 
                     String fileName = getPrefix(javaFile.getName());
                     for (String destDirAbsPath : destDirAbsPathList) {
-                        makeJsons(destDirAbsPath, resolver, fileName);
+                        makeJsons(resolver, destDirAbsPath, parentRelPath, fileName);
 
                         // Map<String, String> methodASTPaths = resolver.getMethodASTPaths();
                         // if (!methodASTPaths.isEmpty()) {
@@ -169,7 +171,7 @@ public class Main {
                 } catch (FileNotFoundException e) {
                     e.printStackTrace(System.err);
                 }
-            });
+            }
             totalResolveSuccess[0] += resolveSuccess[0];
             totalResolveFailed[0] += resolveFailed[0];
             System.out.println();
@@ -187,12 +189,13 @@ public class Main {
         System.out.println("FILE_NUM : " + FILE_NUM[0]);
     }
 
-    private static void makeJsons(String destDirAbsPath, Resolver resolver, String fileName) {
+    private static void makeJsons(Resolver resolver, String destDirAbsPath, String parentRelPath, String fileName) {
         resolver.getRelations().entrySet().forEach(relation -> {
             try {
                 JsonGenerator jsonGenerator = new JsonGenerator(relation.getValue(), true);
                 jsonGenerator.saveFile(
-                        Paths.get(destDirAbsPath, "relations", relation.getKey(), fileName + ".json").toString());
+                        Paths.get(destDirAbsPath, "relations", relation.getKey(), parentRelPath, fileName + ".json")
+                                .toString());
             } catch (IOException io) {
                 System.out.print("\r" + "makeJson Error");
                 System.out.println(io);
