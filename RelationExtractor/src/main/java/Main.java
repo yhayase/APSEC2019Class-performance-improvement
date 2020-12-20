@@ -144,53 +144,28 @@ public class Main {
                     // }
                     // }
 
-                    if (!dividesByProject) {
-                        // ファイル単位でデータセットを分割する場合
-                        int randomNum = rand.nextInt(5) + 1;
-                        for (int i = 1; i <= 5; i++) {
-                            String trainORtest = i == randomNum ? "test" : "train";
-                            // String destDirPath = out + i + "/" + trainORtest;
-                            String destDirPath = inputDir.getAbsolutePath() + "/" + i + "/" + trainORtest;
-                            File destDir = Paths.get(destDirPath).toAbsolutePath().normalize().toFile();
-                            String destDirAbsPath = destDir.getAbsolutePath();
+                    int randomNum = rand.nextInt(5) + 1;
+                    for (int i = 1; i <= 5; i++) {
+                        String trainORtest = (dividesByProject && i == testProjectIndex) // データセットをプロジェクトごとに分割する場合
+                                || (!dividesByProject && i == randomNum) // ファイル単位でデータセットを分割する場合
+                                        ? "test"
+                                        : "train";
+                        // String destDirPath = out + i + "/" + trainORtest;
+                        String destDirPath = inputDir.getAbsolutePath() + "/" + i + "/" + trainORtest;
+                        File destDir = Paths.get(destDirPath).toAbsolutePath().normalize().toFile();
+                        String destDirAbsPath = destDir.getAbsolutePath();
 
-                            for (File jsonFile : jsonFiles) {
-                                String jsonRelPath = jsonFile.getAbsolutePath()
-                                        .replace(undividedInputDir.getAbsolutePath(), "");
-                                long depth = jsonRelPath.chars().filter(c -> c == '/').count();
-                                File symlink = Paths.get(destDirAbsPath, jsonRelPath).toAbsolutePath().normalize()
-                                        .toFile();
-                                symlink.getParentFile().mkdirs();
-                                ProcessBuilder pb = new ProcessBuilder("ln", "-sf",
-                                        String.join("", Collections.nCopies(2 + (int) depth, "../")) + "undivided_input"
-                                                + jsonRelPath,
-                                        symlink.getAbsolutePath());
-                                pb.start();
-                            }
-                        }
-                    } else {
-                        // データセットをプロジェクトごとに分割する場合
-                        for (int i = 1; i <= 5; i++) {
-                            String trainORtest = i == testProjectIndex ? "test" : "train";
-                            // String destDirPath = out + i + "/" + trainORtest;
-                            String destDirPath = inputDir.getAbsolutePath() + "/" + i + "/" + trainORtest;
-
-                            File destDir = Paths.get(destDirPath).toAbsolutePath().normalize().toFile();
-                            String destDirAbsPath = destDir.getAbsolutePath();
-
-                            for (File jsonFile : jsonFiles) {
-                                String jsonRelPath = jsonFile.getAbsolutePath()
-                                        .replace(undividedInputDir.getAbsolutePath(), "");
-                                long depth = jsonRelPath.chars().filter(c -> c == '/').count();
-                                File symlink = Paths.get(destDirAbsPath, jsonRelPath).toAbsolutePath().normalize()
-                                        .toFile();
-                                symlink.getParentFile().mkdirs();
-                                ProcessBuilder pb = new ProcessBuilder("ln", "-sf",
-                                        String.join("", Collections.nCopies(2 + (int) depth, "../")) + "undivided_input"
-                                                + jsonRelPath,
-                                        symlink.getAbsolutePath());
-                                pb.start();
-                            }
+                        for (File jsonFile : jsonFiles) {
+                            String jsonRelPath = jsonFile.getAbsolutePath().replace(undividedInputDir.getAbsolutePath(),
+                                    "");
+                            long depth = jsonRelPath.chars().filter(c -> c == '/').count();
+                            File symlink = Paths.get(destDirAbsPath, jsonRelPath).toAbsolutePath().normalize().toFile();
+                            symlink.getParentFile().mkdirs();
+                            ProcessBuilder pb = new ProcessBuilder("ln", "-sf",
+                                    String.join("", Collections.nCopies(2 + (int) depth, "../")) + "undivided_input"
+                                            + jsonRelPath,
+                                    symlink.getAbsolutePath());
+                            pb.start();
                         }
                     }
 
