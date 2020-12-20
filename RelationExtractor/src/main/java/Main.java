@@ -4,9 +4,12 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import com.github.javaparser.JavaParser;
@@ -29,11 +32,13 @@ public class Main {
     final static int[] resolveSuccess = { 0 };
     final static int[] resolveFailed = { 0 };
 
-    final static boolean splitsByProject = true;
+    final static boolean dividesByProject = true;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException, InterruptedException {
         File dataRoot = Paths.get("data").toAbsolutePath().normalize().toFile();
         File rawDataDir = Paths.get(dataRoot.getAbsolutePath() + "/processed_data").toAbsolutePath().normalize()
+                .toFile();
+        File undividedInputDir = Paths.get(dataRoot.getAbsolutePath() + "/undivided_input").toAbsolutePath().normalize()
                 .toFile();
         File inputDir = Paths.get(dataRoot.getAbsolutePath() + "/input").toAbsolutePath().normalize().toFile();
 
@@ -68,6 +73,11 @@ public class Main {
 
             projectNames1.removeFirstOccurrence(formattedProjectName);
             projectNames2.addLast(formattedProjectName);
+
+            if (formattedProjectName.equals("apachehive")) {
+                continue;
+            }
+
             System.out.println(projectNames1);
             System.out.println(projectNames2);
             System.out.println("testProjectIndex : " + testProjectIndex);
@@ -99,11 +109,12 @@ public class Main {
 
             for (File javaFile : fileArrayList) {
                 FILE_NUM[0] += 1;
-                String parentRelPath = javaFile.getAbsolutePath().replace(rawDataDir.getAbsolutePath(), "");
+                String javaFileRelPath = javaFile.getAbsolutePath().replace(rawDataDir.getAbsolutePath(), "");
+                String parentRelPath = javaFileRelPath.replace(javaFile.getName(), "");
                 List<String> destDirAbsPathList = new ArrayList<>();
 
-                if (!splitsByProject) {
-                    // ファイル単位でデータセットを分割する場合ここ使う
+                if (!dividesByProject) {
+                    // ファイル単位でデータセットを分割する場合
                     int randomNum = rand.nextInt(5) + 1;
                     String trainORtest;
                     for (int i = 1; i <= 5; i++) {
@@ -117,9 +128,8 @@ public class Main {
                         String destDirAbsPath = destDir.getAbsolutePath();
                         destDirAbsPathList.add(destDirAbsPath);
                     }
-                    // ここまで
                 } else {
-                    // データセットをプロジェクトごとに分割する場合ここ使う
+                    // データセットをプロジェクトごとに分割する場合
                     String trainORtest;
                     for (int i = 1; i <= 5; i++) {
                         if (i == testProjectIndex)
@@ -133,7 +143,6 @@ public class Main {
                         String destDirAbsPath = destDir.getAbsolutePath();
                         destDirAbsPathList.add(destDirAbsPath);
                     }
-                    // ここまで
                 }
 
                 System.out.print("\r");
@@ -148,24 +157,37 @@ public class Main {
                     resolveFailed[0] += resolver.getResolveFailed();
 
                     String fileName = getPrefix(javaFile.getName());
-                    for (String destDirAbsPath : destDirAbsPathList) {
-                        makeJsons(resolver, destDirAbsPath, parentRelPath, fileName);
+                    List<File> jsonFiles = makeJsons(resolver, undividedInputDir.getAbsolutePath(), parentRelPath,
+                            fileName);
 
-                        // Map<String, String> methodASTPaths = resolver.getMethodASTPaths();
-                        // if (!methodASTPaths.isEmpty()) {
-                        // File file = new File(
-                        // Paths.get(destDirAbsPath, "methodASTPath", fileName + ".txt").toString());
-                        // file.getParentFile().mkdirs();
-                        // try (PrintWriter out = new PrintWriter(file)) {
-                        // for (Entry<String, String> entry : methodASTPaths.entrySet()) {
-                        // String declarationMethodName = entry.getKey();
-                        // String astPath = entry.getValue();
-                        // out.print(declarationMethodName);
-                        // out.print(' ');
-                        // out.println(astPath);
-                        // }
-                        // }
-                        // }
+                    // Map<String, String> methodASTPaths = resolver.getMethodASTPaths();
+                    // if (!methodASTPaths.isEmpty()) {
+                    // File file = new File(
+                    // Paths.get(destDirAbsPath, "methodASTPath", fileName + ".txt").toString());
+                    // file.getParentFile().mkdirs();
+                    // try (PrintWriter out = new PrintWriter(file)) {
+                    // for (Entry<String, String> entry : methodASTPaths.entrySet()) {
+                    // String declarationMethodName = entry.getKey();
+                    // String astPath = entry.getValue();
+                    // out.print(declarationMethodName);
+                    // out.print(' ');
+                    // out.println(astPath);
+                    // }
+                    // }
+                    // }
+                    for (String destDirAbsPath : destDirAbsPathList) {
+                        for (File jsonFile : jsonFiles) {
+                            String jsonRelPath = jsonFile.getAbsolutePath().replace(undividedInputDir.getAbsolutePath(),
+                                    "");
+                            long depth = jsonRelPath.chars().filter(c -> c == '/').count();
+                            File symlink = Paths.get(destDirAbsPath, jsonRelPath).toAbsolutePath().normalize().toFile();
+                            symlink.getParentFile().mkdirs();
+                            ProcessBuilder pb = new ProcessBuilder("ln", "-sf",
+                                    String.join("", Collections.nCopies(2 + (int) depth, "../")) + "undivided_input"
+                                            + jsonRelPath,
+                                    symlink.getAbsolutePath());
+                            pb.start();
+                        }
                     }
 
                 } catch (FileNotFoundException e) {
@@ -189,18 +211,17 @@ public class Main {
         System.out.println("FILE_NUM : " + FILE_NUM[0]);
     }
 
-    private static void makeJsons(Resolver resolver, String destDirAbsPath, String parentRelPath, String fileName) {
-        resolver.getRelations().entrySet().forEach(relation -> {
-            try {
-                JsonGenerator jsonGenerator = new JsonGenerator(relation.getValue(), true);
-                jsonGenerator.saveFile(
-                        Paths.get(destDirAbsPath, "relations", relation.getKey(), parentRelPath, fileName + ".json")
-                                .toString());
-            } catch (IOException io) {
-                System.out.print("\r" + "makeJson Error");
-                System.out.println(io);
-            }
-        });
+    private static List<File> makeJsons(Resolver resolver, String destDirAbsPath, String parentRelPath, String fileName)
+            throws IOException {
+        List<File> jsonFiles = new ArrayList<>();
+        for (Entry<String, HashMap<String, ArrayList<String>>> relation : resolver.getRelations().entrySet()) {
+            JsonGenerator jsonGenerator = new JsonGenerator(relation.getValue(), true);
+            File jsonFile = Paths.get(destDirAbsPath, "relations", relation.getKey(), parentRelPath, fileName + ".json")
+                    .toAbsolutePath().normalize().toFile();
+            jsonGenerator.saveFile(jsonFile.getAbsolutePath());
+            jsonFiles.add(jsonFile);
+        }
+        return jsonFiles;
     }
 
     /**
