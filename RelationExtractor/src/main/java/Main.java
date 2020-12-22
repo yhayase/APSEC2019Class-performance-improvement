@@ -112,7 +112,9 @@ public class Main {
                 String javaFileRelPath = javaFile.getAbsolutePath().replace(rawDataDir.getAbsolutePath(), "");
                 String parentRelPath = javaFileRelPath.replace(javaFile.getName(), "");
 
-                List<File> jsonFiles = makeUndividedInput(javaFile, undividedInputDir, parentRelPath);
+                List<File> jsonFiles = false ? makeUndividedInput(javaFile, undividedInputDir, parentRelPath)
+                        : findExistingJsons(undividedInputDir.getAbsolutePath(), parentRelPath,
+                                getPrefix(javaFile.getName()));
 
                 int randomNum = rand.nextInt(5) + 1;
                 for (int i = 1; i <= 5; i++) {
@@ -187,6 +189,19 @@ public class Main {
         // }
         // }
 
+        return jsonFiles;
+    }
+
+    private static List<File> findExistingJsons(String destDirAbsPath, String parentRelPath, String fileName) {
+        List<File> jsonFiles = new ArrayList<>();
+        for (String key : Arrays.asList("classExtends", "methodInClass", "fieldInClass", "methodCall", "fieldInMethod",
+                "returnType", "fieldType")) {
+            File jsonFile = Paths.get(destDirAbsPath, "relations", key, parentRelPath, fileName + ".json")
+                    .toAbsolutePath().normalize().toFile();
+            if (jsonFile.exists()) {
+                jsonFiles.add(jsonFile);
+            }
+        }
         return jsonFiles;
     }
 
