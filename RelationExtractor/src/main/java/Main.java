@@ -63,6 +63,7 @@ public class Main {
                 continue;
 
             int testProjectIndex = projectCount % 5 + 1;
+            int valProjectIndex = projectCount % 5 + 2;
             projectCount += 1;
 
             resolveSuccess[0] = 0;
@@ -118,12 +119,15 @@ public class Main {
 
                 int randomNum = rand.nextInt(5) + 1;
                 for (int i = 1; i <= 5; i++) {
-                    String trainORtest = (dividesByProject && i == testProjectIndex) // データセットをプロジェクトごとに分割する場合
+                    String trainOrValOrTest = (dividesByProject && i == testProjectIndex) // データセットをプロジェクトごとに分割する場合
                             || (!dividesByProject && i == randomNum) // ファイル単位でデータセットを分割する場合
                                     ? "test"
-                                    : "train";
+                                    : (dividesByProject && i == valProjectIndex) // データセットをプロジェクトごとに分割する場合
+                                            // || (!dividesByProject && i == randomNum) // ファイル単位でデータセットを分割する場合
+                                            ? "val"
+                                            : "train";
                     // String destDirPath = out + i + "/" + trainORtest;
-                    String destDirPath = inputDir.getAbsolutePath() + "/" + i + "/" + trainORtest;
+                    String destDirPath = inputDir.getAbsolutePath() + "/" + i + "/" + trainOrValOrTest;
                     File destDir = Paths.get(destDirPath).toAbsolutePath().normalize().toFile();
                     String destDirAbsPath = destDir.getAbsolutePath();
 
