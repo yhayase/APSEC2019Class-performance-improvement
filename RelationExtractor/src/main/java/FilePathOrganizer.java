@@ -1,79 +1,74 @@
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.NoSuchElementException;
+
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.ast.CompilationUnit;
-import org.apache.commons.io.FilenameUtils;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.NoSuchElementException;
+import org.apache.commons.io.FilenameUtils;
 
 public class FilePathOrganizer {
     public static void main(String[] args) {
 
         File dataRoot = Paths.get("data").toAbsolutePath().normalize().toFile();
-        File rawTrainDataDir = Paths.get(dataRoot.getAbsolutePath() + "/evaldata/training").toAbsolutePath().normalize()
-                .toFile();
-        File rawTestDataDir = Paths.get(dataRoot.getAbsolutePath() + "/evaldata/test").toAbsolutePath().normalize()
-                .toFile();
-        File rawValDataDir = Paths.get(dataRoot.getAbsolutePath() + "/evaldata/validation").toAbsolutePath().normalize()
-                .toFile();
-        String processedDataDirPath = Paths.get(dataRoot.getAbsolutePath() + "/processed_data").toAbsolutePath()
+        File evaldataDir = Paths.get(dataRoot.getAbsolutePath(), "evaldata").toAbsolutePath().normalize().toFile();
+        String processedDataDirPath = Paths.get(dataRoot.getAbsolutePath(), "processed_data").toAbsolutePath()
                 .normalize().toString();
-        File[] trainProjects = rawTrainDataDir.listFiles();
-        File[] testProjects = rawTestDataDir.listFiles();
-        File[] valProjects = rawValDataDir.listFiles();
-        List<File> projectRootDirectories = new ArrayList<>();
-        Collections.addAll(projectRootDirectories, trainProjects);
-        Collections.addAll(projectRootDirectories, testProjects);
-        Collections.addAll(projectRootDirectories, valProjects);
 
-        for (File projectRootDir : projectRootDirectories) {
-            if (!projectRootDir.isDirectory())
-                continue;
-            String projectName = formatDirName(getPrefix(projectRootDir.getName()));
+        for (File subsetDir : evaldataDir.listFiles()) {
+            for (File projectRootDir : subsetDir.listFiles()) {
+                if (!projectRootDir.isDirectory())
+                    continue;
+                String projectName = formatDirName(getPrefix(projectRootDir.getName()));
 
-            ArrayList<File> javaFiles = getJavaFilesRecursively(projectRootDir);
-            try {
-                javaFiles.forEach(javaFile -> {
-                    try {
-                        CompilationUnit cu = JavaParser.parse(javaFile);
-                        String filePathInPackage;
-                        if (cu.getPackageDeclaration().isPresent()) {
-                            filePathInPackage = cu.getPackageDeclaration().get().getNameAsString().replace(".", "/");
-                        } else {
-                            System.out.println("\n" + javaFile.getName() + "Since there is no package declaration, "
-                                    + "it is directly put under the root directory");
-                            filePathInPackage = "";
-                        }
-                        String javaFileName = javaFile.getName();
-                        Path directories = Paths.get(processedDataDirPath, projectName, filePathInPackage);
-                        System.out.print("\r" + directories.toAbsolutePath() + javaFileName);
+                ArrayList<File> javaFiles = getJavaFilesRecursively(projectRootDir);
+                try {
+                    javaFiles.forEach(javaFile -> {
                         try {
-                            Files.createDirectories(directories);
-                        } catch (FileAlreadyExistsException al) {
-                            System.out.println(al);
-                        } catch (IOException e) {
-                            System.out.println("Directory creation failed\n" + e);
-                        }
-                        Path from = Paths.get(javaFile.getAbsolutePath());
-                        Path to = Paths.get(processedDataDirPath, projectName, filePathInPackage, javaFileName);
-                        try {
-                            Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
+                            CompilationUnit cu = JavaParser.parse(javaFile);
+                            String filePathInPackage;
+                            if (cu.getPackageDeclaration().isPresent()) {
+                                filePathInPackage = cu.getPackageDeclaration().get().getNameAsString().replace(".",
+                                        "/");
+                            } else {
+                                System.out.println("\n" + javaFile.getName() + "Since there is no package declaration, "
+                                        + "it is directly put under the root directory");
+                                filePathInPackage = "";
+                            }
+                            String javaFileName = javaFile.getName();
+                            Path directories = Paths.get(processedDataDirPath, subsetDir.getName(), projectName,
+                                    filePathInPackage);
+                            System.out.print("\r" + directories.toAbsolutePath() + javaFileName);
+                            try {
+                                Files.createDirectories(directories);
+                            } catch (FileAlreadyExistsException al) {
+                                System.out.println(al);
+                            } catch (IOException e) {
+                                System.out.println("Directory creation failed\n" + e);
+                            }
+                            Path from = Paths.get(javaFile.getAbsolutePath());
+                            Path to = Paths.get(directories.toString(), javaFileName);
+                            try {
+                                Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
+                            } catch (Exception e) {
+                                System.out.println("Copy failed\n" + e.fillInStackTrace());
+                            }
+                        } catch (ParseProblemException p) {
+                            System.out.println(p);
                         } catch (Exception e) {
-                            System.out.println("Copy failed\n" + e.fillInStackTrace());
+                            System.out.println(e);
                         }
-                    } catch (ParseProblemException p) {
-                        System.out.println(p);
-                    } catch (Exception e) {
-                        System.out.println(e);
-                    }
-                });
-            } catch (NoSuchElementException e) {
-                System.out.println(e);
+                    });
+                } catch (NoSuchElementException e) {
+                    System.out.println(e);
+                }
             }
         }
 
