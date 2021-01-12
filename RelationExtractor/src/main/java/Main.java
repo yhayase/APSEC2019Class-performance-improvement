@@ -38,8 +38,8 @@ public class Main {
     public static void main(String[] args) throws IOException, InterruptedException {
         File dataRoot = Paths.get("data").toAbsolutePath().normalize().toFile();
         File rawDataDir = Paths.get(dataRoot.getAbsolutePath(), "processed_data").toFile();
-        File undividedInputDir = Paths.get(dataRoot.getAbsolutePath(), "undivided_input").toFile();
-        File inputDir = Paths.get(dataRoot.getAbsolutePath(), "input").toFile();
+        File input1Dir = Paths.get(dataRoot.getAbsolutePath(), "input1").toFile();
+        File input2Dir = Paths.get(dataRoot.getAbsolutePath(), "input2").toFile();
 
         Random rand = new Random(0L);
         rand.nextInt(5);
@@ -47,7 +47,7 @@ public class Main {
         long start = System.nanoTime();
         int projectCount = 0;
         for (File subsetDir : rawDataDir.listFiles()) {
-            File undividedInputSubsetDir = Paths.get(undividedInputDir.getAbsolutePath(), subsetDir.getName()).toFile();
+            File input1SubsetDir = Paths.get(input1Dir.getAbsolutePath(), subsetDir.getName()).toFile();
             File[] projects = subsetDir.listFiles();
             LinkedList<String> projectNames1 = new LinkedList<>(Arrays.asList(projects).stream()
                     .map(projectRootDir -> formatDirName(getPrefix(projectRootDir.getName())))
@@ -108,8 +108,8 @@ public class Main {
                     String javaFileRelPath = javaFile.getAbsolutePath().replace(subsetDir.getAbsolutePath(), "");
                     String parentRelPath = javaFileRelPath.replace(javaFile.getName(), "");
 
-                    List<File> jsonFiles = true ? makeUndividedInput(javaFile, undividedInputSubsetDir, parentRelPath)
-                            : findExistingJsons(undividedInputSubsetDir.getAbsolutePath(), parentRelPath,
+                    List<File> jsonFiles = true ? makeInput1(javaFile, input1SubsetDir, parentRelPath)
+                            : findExistingJsons(input1SubsetDir.getAbsolutePath(), parentRelPath,
                                     getPrefix(javaFile.getName()));
 
                     int randomNum = rand.nextInt(5) + 1;
@@ -122,10 +122,10 @@ public class Main {
                                                 ? "val"
                                                 : "train";
                         // String destDirPath = out + i + "/" + trainORtest;
-                        Path destDir = Paths.get(inputDir.getAbsolutePath(), Integer.toString(i), trainOrValOrTest);
+                        Path destDir = Paths.get(input2Dir.getAbsolutePath(), Integer.toString(i), trainOrValOrTest);
 
                         for (File jsonFile : jsonFiles) {
-                            Path jsonRelPath = undividedInputSubsetDir.toPath().relativize(jsonFile.toPath());
+                            Path jsonRelPath = input1SubsetDir.toPath().relativize(jsonFile.toPath());
                             Path symlink = Paths.get(destDir.toString(), jsonRelPath.toString());
                             Files.createDirectories(symlink.getParent());
                             ProcessBuilder pb = new ProcessBuilder("ln", "-sf",
@@ -152,7 +152,7 @@ public class Main {
         System.out.println("FILE_NUM : " + FILE_NUM[0]);
     }
 
-    private static List<File> makeUndividedInput(File javaFile, File destDirAbsPath, String parentRelPath)
+    private static List<File> makeInput1(File javaFile, File destDirAbsPath, String parentRelPath)
             throws IOException, FileNotFoundException {
         System.out.print("\r");
         System.out.print("Parsing : " + javaFile.getName());
