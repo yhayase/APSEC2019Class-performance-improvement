@@ -58,7 +58,7 @@ public class Main {
                     continue;
 
                 int testProjectIndex = projectCount % 5 + 1;
-                int valProjectIndex = projectCount % 5 + 2;
+                int valProjectIndex = (projectCount + 1) % 5 + 1;
                 projectCount += 1;
 
                 resolveSuccess[0] = 0;
@@ -112,28 +112,53 @@ public class Main {
                             : findExistingJsons(input1SubsetDir.getAbsolutePath(), parentRelPath,
                                     getPrefix(javaFile.getName()));
 
-                    int randomNum = rand.nextInt(5) + 1;
-                    for (int i = 1; i <= 5; i++) {
-                        String trainOrValOrTest = (dividesByProject && i == testProjectIndex) // データセットをプロジェクトごとに分割する場合
-                                || (!dividesByProject && i == randomNum) // ファイル単位でデータセットを分割する場合
-                                        ? "test"
-                                        : (dividesByProject && i == valProjectIndex) // データセットをプロジェクトごとに分割する場合
-                                                // || (!dividesByProject && i == randomNum) // ファイル単位でデータセットを分割する場合
-                                                ? "val"
-                                                : "train";
-                        // String destDirPath = out + i + "/" + trainORtest;
-                        Path destDir = Paths.get(input2Dir.getAbsolutePath(), Integer.toString(i), trainOrValOrTest);
+                    if (!dividesByProject) { // ファイル単位でデータセットを分割する場合
+                        int randomNum = rand.nextInt(5) + 1;
+                        for (int i = 1; i <= 5; i++) {
+                            String trainOrValOrTest = i == randomNum ? "test"
+                                    : i == (randomNum % 5 + 1) ? "val" : "train";
+                            // String destDirPath = out + i + "/" + trainORtest;
+                            Path destDir = Paths.get(input2Dir.getAbsolutePath(), Integer.toString(i),
+                                    trainOrValOrTest);
 
-                        for (File jsonFile : jsonFiles) {
-                            Path jsonRelPath = input1SubsetDir.toPath().relativize(jsonFile.toPath());
-                            Path symlink = Paths.get(destDir.toString(), jsonRelPath.toString());
-                            Files.createDirectories(symlink.getParent());
-                            ProcessBuilder pb = new ProcessBuilder("ln", "-sf",
-                                    symlink.getParent().relativize(jsonFile.toPath()).toString(), symlink.toString());
-                            pb.start();
+                            for (File jsonFile : jsonFiles) {
+                                Path jsonRelPath = input1SubsetDir.toPath().relativize(jsonFile.toPath());
+                                Path symlink = Paths.get(destDir.toString(), jsonRelPath.toString());
+                                Files.createDirectories(symlink.getParent());
+                                ProcessBuilder pb = new ProcessBuilder("ln", "-sf",
+                                        symlink.getParent().relativize(jsonFile.toPath()).toString(),
+                                        symlink.toString());
+                                pb.start();
+                            }
                         }
                     }
                 }
+
+                if (dividesByProject) { // データセットをプロジェクトごとに分割する場合
+                    for (int i = 1; i <= 5; i++) {
+                        String trainOrValOrTest = i == testProjectIndex ? "test"
+                                : i == valProjectIndex ? "val" : "train";
+                        Path destDir = Paths.get(input2Dir.getAbsolutePath(), Integer.toString(i), trainOrValOrTest);
+
+                        for (String key : Arrays.asList("classExtends", "methodInClass", "fieldInClass", "methodCall",
+                                "fieldInMethod", "returnType", "fieldType")) {
+                            Path projectRootInRelationDir = Paths.get(input1SubsetDir.getAbsolutePath(), "relations",
+                                    key, formattedProjectName);
+                            if (Files.exists(projectRootInRelationDir)) {
+                                Path projectRootInRelationDirRelPath = input1SubsetDir.toPath()
+                                        .relativize(projectRootInRelationDir);
+                                Path symlink = Paths.get(destDir.toString(),
+                                        projectRootInRelationDirRelPath.toString());
+                                Files.createDirectories(symlink.getParent());
+                                ProcessBuilder pb = new ProcessBuilder("ln", "-sf",
+                                        symlink.getParent().relativize(projectRootInRelationDir).toString(),
+                                        symlink.toString());
+                                pb.start();
+                            }
+                        }
+                    }
+                }
+
                 totalResolveSuccess[0] += resolveSuccess[0];
                 totalResolveFailed[0] += resolveFailed[0];
                 System.out.println();
