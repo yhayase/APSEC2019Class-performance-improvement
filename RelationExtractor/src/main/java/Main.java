@@ -83,9 +83,11 @@ public class Main {
                     continue;
                 }
 
-                if (formattedProjectName.equals("apachehive") // java-med
-                        || formattedProjectName.equals("GoogleCloudPlatformgooglecloudjava") // java-large
-                ) {
+                // java-med, java-large, java-large
+                List<String> ignoredProjectNames1 = Arrays.asList("apachehive", "GoogleCloudPlatformgooglecloudjava",
+                        "clementineplayerAndroidRemote");
+
+                if (ignoredProjectNames1.contains(formattedProjectName)) {
                     continue;
                 }
 
