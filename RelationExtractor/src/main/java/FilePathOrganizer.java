@@ -27,6 +27,8 @@ public class FilePathOrganizer {
                 if (!projectRootDir.isDirectory())
                     continue;
                 String projectName = formatDirName(getPrefix(projectRootDir.getName()));
+                if (projectName.equals("eclipseceylon"))
+                    continue;
 
                 ArrayList<File> javaFiles = getJavaFilesRecursively(projectRootDir);
                 try {
