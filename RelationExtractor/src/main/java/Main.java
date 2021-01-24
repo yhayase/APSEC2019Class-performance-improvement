@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -41,6 +42,9 @@ public class Main {
         File input1Dir = Paths.get(dataRoot.getAbsolutePath(), "input1").toFile();
         File input2Dir = Paths.get(dataRoot.getAbsolutePath(), "input2").toFile();
 
+        Path tmp = Paths.get(dataRoot.getAbsolutePath(), "tmp");
+        List<String> ignoredProjectNamesWithSubsetNames = Files.readAllLines(tmp);
+
         Random rand = new Random(0L);
         rand.nextInt(5);
 
@@ -70,7 +74,15 @@ public class Main {
                 projectNames1.removeFirstOccurrence(formattedProjectName);
                 projectNames2.addLast(formattedProjectName);
 
-                if (formattedProjectName.equals("apachehive")) {
+                String projectNameWithSubsetName = subsetDir.getName() + '/' + formattedProjectName;
+
+                if (ignoredProjectNamesWithSubsetNames.contains(projectNameWithSubsetName)) {
+                    continue;
+                }
+
+                if (formattedProjectName.equals("apachehive") // java-med
+                        || formattedProjectName.equals("GoogleCloudPlatformgooglecloudjava") // java-large
+                ) {
                     continue;
                 }
 
@@ -159,11 +171,14 @@ public class Main {
                     }
                 }
 
+                Files.write(tmp, Arrays.asList(projectNameWithSubsetName), StandardOpenOption.APPEND);
+
                 totalResolveSuccess[0] += resolveSuccess[0];
                 totalResolveFailed[0] += resolveFailed[0];
                 System.out.println();
                 System.out.println("resolveSuccess : " + resolveSuccess[0]);
                 System.out.println("resolveFailed : " + resolveFailed[0]);
+
             }
         }
 
