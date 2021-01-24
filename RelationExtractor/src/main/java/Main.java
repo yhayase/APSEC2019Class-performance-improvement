@@ -42,6 +42,9 @@ public class Main {
         File input1Dir = Paths.get(dataRoot.getAbsolutePath(), "input1").toFile();
         File input2Dir = Paths.get(dataRoot.getAbsolutePath(), "input2").toFile();
 
+        /*
+         * 異常に処理に時間がかかるプロジェクトがあった場合，一旦処理を中止してそのプロジェクトを除外してから，途中から処理を再開できるようにするためのファイル
+         */
         Path tmp = Paths.get(dataRoot.getAbsolutePath(), "tmp");
         List<String> ignoredProjectNamesWithSubsetNames = Files.readAllLines(tmp);
 
