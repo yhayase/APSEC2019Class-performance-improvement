@@ -54,6 +54,9 @@ public class Main {
         long start = System.nanoTime();
         int projectCount = 0;
         for (File subsetDir : rawDataDir.listFiles()) {
+            if (!subsetDir.getName().equals("training")) {
+                continue;
+            }
             File input1SubsetDir = Paths.get(input1Dir.getAbsolutePath(), subsetDir.getName()).toFile();
             File[] projects = subsetDir.listFiles();
             LinkedList<String> projectNames1 = new LinkedList<>(Arrays.asList(projects).stream()
@@ -83,9 +86,10 @@ public class Main {
                     continue;
                 }
 
-                // java-med, java-large, java-large, java-large, java-large, java-large
+                // java-med, java-large, java-large, java-large, java-large, java-large,
+                // java-large
                 List<String> ignoredProjectNames1 = Arrays.asList("apachehive", "GoogleCloudPlatformgooglecloudjava",
-                        "clementineplayerAndroidRemote", "oVirtovirtengine", "VUEVUE", "palatablelambda");
+                        "clementineplayerAndroidRemote", "oVirtovirtengine", "VUEVUE", "palatablelambda", "amututdw");
 
                 if (ignoredProjectNames1.contains(formattedProjectName)) {
                     continue;
