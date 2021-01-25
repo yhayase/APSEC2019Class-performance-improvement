@@ -83,9 +83,9 @@ public class Main {
                     continue;
                 }
 
-                // java-med, java-large, java-large
+                // java-med, java-large, java-large, java-large, java-large, java-large
                 List<String> ignoredProjectNames1 = Arrays.asList("apachehive", "GoogleCloudPlatformgooglecloudjava",
-                        "clementineplayerAndroidRemote");
+                        "clementineplayerAndroidRemote", "oVirtovirtengine", "VUEVUE", "palatablelambda");
 
                 if (ignoredProjectNames1.contains(formattedProjectName)) {
                     continue;
@@ -93,6 +93,7 @@ public class Main {
 
                 System.out.println(projectNames1);
                 System.out.println(projectNames2);
+                System.out.println(projectNames1.size() + " / " + projectNames2.size());
                 System.out.println("testProjectIndex : " + testProjectIndex);
 
                 String srcDirAbsPath = projectRootDir.getAbsolutePath();
