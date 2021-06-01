@@ -37,15 +37,23 @@ public class Main {
     final static boolean dividesByProject = true;
 
     public static void main(String[] args) throws IOException, InterruptedException {
+        String dataName = null;
+
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equals("--data")) {
+                dataName = args[++i];
+            }
+        }
+
         File dataRoot = Paths.get("data").toAbsolutePath().normalize().toFile();
-        File rawDataDir = Paths.get(dataRoot.getAbsolutePath(), "processed_data").toFile();
-        File input1Dir = Paths.get(dataRoot.getAbsolutePath(), "input1").toFile();
-        File input2Dir = Paths.get(dataRoot.getAbsolutePath(), "input2").toFile();
+        File rawDataDir = Paths.get(dataRoot.getAbsolutePath(), "processed_data", dataName).toFile();
+        File input1Dir = Paths.get(dataRoot.getAbsolutePath(), "input1", dataName).toFile();
+        File input2Dir = Paths.get(dataRoot.getAbsolutePath(), "input2", dataName).toFile();
 
         /*
          * 異常に処理に時間がかかるプロジェクトがあった場合，一旦処理を中止してそのプロジェクトを除外してから，途中から処理を再開できるようにするためのファイル
          */
-        Path tmp = Paths.get(dataRoot.getAbsolutePath(), "tmp");
+        Path tmp = Paths.get(dataRoot.getAbsolutePath(), "tmp", dataName);
         List<String> ignoredProjectNamesWithSubsetNames = Files.readAllLines(tmp);
 
         Random rand = new Random(0L);

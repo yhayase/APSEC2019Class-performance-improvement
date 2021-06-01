@@ -16,10 +16,18 @@ import org.apache.commons.io.FilenameUtils;
 
 public class FilePathOrganizer {
     public static void main(String[] args) {
+        String dataName = null;
+
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equals("--data")) {
+                dataName = args[++i];
+            }
+        }
 
         File dataRoot = Paths.get("data").toAbsolutePath().normalize().toFile();
-        File evaldataDir = Paths.get(dataRoot.getAbsolutePath(), "evaldata").toAbsolutePath().normalize().toFile();
-        String processedDataDirPath = Paths.get(dataRoot.getAbsolutePath(), "processed_data").toAbsolutePath()
+        File evaldataDir = Paths.get(dataRoot.getAbsolutePath(), "evaldata", dataName).toAbsolutePath().normalize()
+                .toFile();
+        String processedDataDirPath = Paths.get(dataRoot.getAbsolutePath(), "processed_data", dataName).toAbsolutePath()
                 .normalize().toString();
 
         for (File subsetDir : evaldataDir.listFiles()) {
