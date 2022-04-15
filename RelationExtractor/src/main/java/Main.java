@@ -5,7 +5,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -57,26 +56,23 @@ public class Main {
                     projectStream.forEach(projectRootDir -> {
                         resolveSuccess[0] = 0;
                         resolveFailed[0] = 0;
-                        String formattedProjectName = formatDirName(getPrefix(projectRootDir.getFileName().toString()));
+                        String projectName = projectRootDir.getFileName().toString();
                         System.out.println("\n\n-----\n");
-                        System.out.println(formattedProjectName);
+                        System.out.println(projectRootDir.getFileName());
 
-                        String projectNameWithSubsetName = rawRoleDir.getFileName().toString() + '/'
-                                + formattedProjectName;
-
-                        if (ignoredProjectNamesWithSubsetNames.contains(projectNameWithSubsetName)) {
+                        if (ignoredProjectNamesWithSubsetNames.contains(projectName)) {
                             return;
                         }
 
                         // java-med, java-large, java-large, java-large, java-large, java-large,
                         // java-large, java-large
-                        List<String> ignoredProjectNames1 = List.of("apachehive",
-                                "GoogleCloudPlatformgooglecloudjava",
-                                "clementineplayerAndroidRemote", "oVirtovirtengine", "VUEVUE", "palatablelambda",
-                                "amututdw",
-                                "usethesourcecapsule");
+                        List<String> ignoredProjectNames1 = List.of("apache__hive",
+                                "GoogleCloudPlatform__google-cloud-java",
+                                "clementine-player__Android-Remote", "oVirt__ovirt-engine", "VUE__VUE", "palatable__lambda",
+                                "amutu__tdw",
+                                "usethesource__capsule");
 
-                        if (ignoredProjectNames1.contains(formattedProjectName)) {
+                        if (ignoredProjectNames1.contains(projectName)) {
                             return;
                         }
 
@@ -134,7 +130,7 @@ public class Main {
                         }
 
                         try {
-                            Files.write(tmp, Arrays.asList(projectNameWithSubsetName), StandardOpenOption.APPEND);
+                            Files.write(tmp, List.of(projectName), StandardOpenOption.APPEND);
                         } catch (IOException e) {
                             throw new UncheckedIOException(e);
                         }
@@ -172,29 +168,4 @@ public class Main {
         }
         return jsonFiles;
     }
-
-    /**
-     * ファイルの絶対パスからファイル名のみの文字列を返す
-     * 
-     * @param fileName ファイルパスを表す文字列
-     * @return ファイル名のみの文字列
-     */
-    private static String getPrefix(String fileName) {
-        if (fileName == null)
-            return null;
-        int point = fileName.lastIndexOf(".");
-        if (point != -1) {
-            fileName = fileName.substring(0, point);
-        }
-        point = fileName.lastIndexOf("/");
-        if (point != -1) {
-            return fileName.substring(point + 1);
-        }
-        return fileName;
-    }
-
-    private static String formatDirName(String dirName) {
-        return dirName.replace("-", "").replace("_", "");
-    }
-
 }

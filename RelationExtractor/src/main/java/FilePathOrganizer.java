@@ -22,10 +22,6 @@ public class FilePathOrganizer {
             roleDirs.forEach(roleDir -> {
                 try (Stream<Path> projectRootDirs = Files.list(roleDir).filter(Files::isDirectory)) {
                     projectRootDirs.forEach(projectRootDir -> {
-                        String projectName = formatDirName(getPrefix(projectRootDir.getFileName().toString()));
-                        if (projectName.equals("eclipseceylon"))
-                            return;
-
                         try (Stream<Path> javaFileStream = Files.walk(projectRootDir)
                                 .filter(path -> Files.isRegularFile(path)
                                         && FilenameUtils.getExtension(path.toAbsolutePath().toString())
@@ -46,7 +42,7 @@ public class FilePathOrganizer {
                                     }
                                     String javaFileName = javaFile.getFileName().toString();
                                     Path directories = processedDataDir.resolve(roleDir.getFileName())
-                                            .resolve(projectName)
+                                            .resolve(projectRootDir.getFileName())
                                             .resolve(filePathInPackage);
                                     System.out.print("\r" + directories.toAbsolutePath() + javaFileName);
 
@@ -70,23 +66,5 @@ public class FilePathOrganizer {
             });
         }
 
-    }
-
-    private static String formatDirName(String dirName) {
-        return dirName.replace("-", "").replace("_", "");
-    }
-
-    private static String getPrefix(String fileName) {
-        if (fileName == null)
-            return null;
-        int point = fileName.lastIndexOf(".");
-        if (point != -1) {
-            fileName = fileName.substring(0, point);
-        }
-        point = fileName.lastIndexOf("/");
-        if (point != -1) {
-            return fileName.substring(point + 1);
-        }
-        return fileName;
     }
 }
