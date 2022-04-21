@@ -1,3 +1,4 @@
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -15,6 +16,7 @@ import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
+import com.opencsv.CSVWriter;
 
 import org.apache.commons.io.FilenameUtils;
 
@@ -47,7 +49,6 @@ public class Main {
         try (Stream<Path> rawRoleDirs = Files.list(rawDataDir)) {
             rawRoleDirs.forEach(rawRoleDir -> {
                 Path roleName = rawRoleDir.getFileName();
-                Path destDirAbsPath = inputDir.resolve(roleName);
 
                 try (Stream<Path> projectStream = Files.list(rawRoleDir).filter(Files::isDirectory)) {
                     projectStream.forEach(projectRootDir -> {
@@ -56,6 +57,8 @@ public class Main {
                         String projectName = projectRootDir.getFileName().toString();
                         System.out.println("\n\n-----\n");
                         System.out.println(projectRootDir.getFileName());
+
+                        Path csvPath = inputDir.resolve(roleName).resolve(projectName + ".csv");
 
                         if (ignoredProjectNamesWithSubsetNames.contains(projectName)) {
                             return;
@@ -98,13 +101,10 @@ public class Main {
                         try (Stream<Path> javaFileStream = Files.walk(projectRootDir)
                                 .filter(path -> Files.isRegularFile(path)
                                         && FilenameUtils.getExtension(path.toAbsolutePath().toString())
-                                                .equals("java"))) {
+                                                .equals("java"));
+                                CSVWriter csvWriter = new CSVWriter(new FileWriter(csvPath.toFile()))) {
                             javaFileStream.forEach(javaFile -> {
                                 FILE_NUM[0] += 1;
-
-                                Path javaFileRelPath = rawRoleDir.relativize(javaFile);
-                                Path jsonFileRelPath = javaFileRelPath
-                                        .resolveSibling(javaFileRelPath.getFileName() + ".json");
 
                                 System.out.print("\r");
                                 System.out.print("Parsing : " + javaFile.getFileName());
@@ -119,12 +119,11 @@ public class Main {
                                     resolveFailed[0] += resolver.getResolveFailed();
 
                                     for (GraphEdge edge : resolver.getEdges()) {
-                                        System.out.println(String.format("%s,%s,%s,%s,%s", edge.source().type(),
+                                        String[] line = { edge.source().type(),
                                                 edge.source().name(), edge.type(), edge.target().type(),
-                                                edge.target().name()));
+                                                edge.target().name() };
+                                        csvWriter.writeNext(line);
                                     }
-
-                                    // makeJsons(resolver, destDirAbsPath, jsonFileRelPath);
                                 } catch (IOException e) {
                                     throw new UncheckedIOException(e);
                                 }
@@ -148,7 +147,6 @@ public class Main {
                     throw new UncheckedIOException(e);
                 }
             });
-
         }
 
         long time = System.nanoTime() - start;
