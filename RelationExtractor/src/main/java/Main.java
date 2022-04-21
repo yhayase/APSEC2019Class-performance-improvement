@@ -4,10 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.stream.Stream;
 
@@ -68,7 +65,8 @@ public class Main {
                         // java-large, java-large
                         List<String> ignoredProjectNames1 = List.of("apache__hive",
                                 "GoogleCloudPlatform__google-cloud-java",
-                                "clementine-player__Android-Remote", "oVirt__ovirt-engine", "VUE__VUE", "palatable__lambda",
+                                "clementine-player__Android-Remote", "oVirt__ovirt-engine", "VUE__VUE",
+                                "palatable__lambda",
                                 "amutu__tdw",
                                 "usethesource__capsule");
 
@@ -120,7 +118,13 @@ public class Main {
                                     resolveSuccess[0] += resolver.getResolveSuccess();
                                     resolveFailed[0] += resolver.getResolveFailed();
 
-                                    makeJsons(resolver, destDirAbsPath, jsonFileRelPath);
+                                    for (GraphEdge edge : resolver.getEdges()) {
+                                        System.out.println(String.format("%s,%s,%s,%s,%s", edge.source().type(),
+                                                edge.source().name(), edge.type(), edge.target().type(),
+                                                edge.target().name()));
+                                    }
+
+                                    // makeJsons(resolver, destDirAbsPath, jsonFileRelPath);
                                 } catch (IOException e) {
                                     throw new UncheckedIOException(e);
                                 }
@@ -155,17 +159,5 @@ public class Main {
         System.out.println("totalResolveSuccess : " + totalResolveSuccess[0]);
         System.out.println("totalResolveFailed : " + totalResolveFailed[0]);
         System.out.println("FILE_NUM : " + FILE_NUM[0]);
-    }
-
-    private static List<Path> makeJsons(Resolver resolver, Path destDirAbsPath, Path jsonRelPath)
-            throws IOException {
-        List<Path> jsonFiles = new ArrayList<>();
-        for (Entry<String, HashMap<String, ArrayList<String>>> relation : resolver.getRelations().entrySet()) {
-            JsonGenerator jsonGenerator = new JsonGenerator(relation.getValue(), true);
-            Path jsonFile = destDirAbsPath.resolve(relation.getKey()).resolve(jsonRelPath);
-            jsonGenerator.saveFile(jsonFile.toString());
-            jsonFiles.add(jsonFile);
-        }
-        return jsonFiles;
     }
 }
