@@ -33,7 +33,9 @@ public class Main {
     public static void main(String[] args) throws IOException, InterruptedException {
         Path dataRoot = Paths.get("data").toAbsolutePath().normalize();
         Path rawDataDir = dataRoot.resolve("processed_data");
+
         Path inputDir = dataRoot.resolve("relations");
+        Files.createDirectory(inputDir);
 
         /*
          * 異常に処理に時間がかかるプロジェクトがあった場合，一旦処理を中止してそのプロジェクトを除外してから，途中から処理を再開できるようにするためのファイル
@@ -49,6 +51,11 @@ public class Main {
         try (Stream<Path> rawRoleDirs = Files.list(rawDataDir)) {
             rawRoleDirs.forEach(rawRoleDir -> {
                 Path roleName = rawRoleDir.getFileName();
+                try {
+                    Files.createDirectory(inputDir.resolve(roleName));
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
 
                 try (Stream<Path> projectStream = Files.list(rawRoleDir).filter(Files::isDirectory)) {
                     projectStream.forEach(projectRootDir -> {
@@ -67,10 +74,8 @@ public class Main {
                         // java-med, java-large, java-large, java-large, java-large, java-large,
                         // java-large, java-large
                         List<String> ignoredProjectNames1 = List.of("apache__hive",
-                                "GoogleCloudPlatform__google-cloud-java",
-                                "clementine-player__Android-Remote", "oVirt__ovirt-engine", "VUE__VUE",
-                                "palatable__lambda",
-                                "amutu__tdw",
+                                "GoogleCloudPlatform__google-cloud-java", "clementine-player__Android-Remote",
+                                "oVirt__ovirt-engine", "VUE__VUE", "palatable__lambda", "amutu__tdw",
                                 "usethesource__capsule");
 
                         if (ignoredProjectNames1.contains(projectName)) {
@@ -93,8 +98,6 @@ public class Main {
                         JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedSolver);
                         JavaParser.getStaticConfiguration().setSymbolResolver(symbolSolver);
 
-                        // String out = cmd.getOptionValue("outputdir");
-
                         /*
                          * 取得元ディレクトリからJavaファイルを再帰的に探索
                          */
@@ -103,29 +106,28 @@ public class Main {
                                         && FilenameUtils.getExtension(path.toAbsolutePath().toString())
                                                 .equals("java"));
                                 CSVWriter csvWriter = new CSVWriter(new FileWriter(csvPath.toFile()))) {
+
                             javaFileStream.forEach(javaFile -> {
                                 FILE_NUM[0] += 1;
 
                                 System.out.print("\r");
                                 System.out.print("Parsing : " + javaFile.getFileName());
 
+                                Resolver resolver = new Resolver(true);
                                 try {
                                     CompilationUnit cu = JavaParser.parse(javaFile);
-
-                                    Resolver resolver = new Resolver(true);
                                     resolver.execute(cu);
-
-                                    resolveSuccess[0] += resolver.getResolveSuccess();
-                                    resolveFailed[0] += resolver.getResolveFailed();
-
-                                    for (GraphEdge edge : resolver.getEdges()) {
-                                        String[] line = { edge.source().type(),
-                                                edge.source().name(), edge.type(), edge.target().type(),
-                                                edge.target().name() };
-                                        csvWriter.writeNext(line);
-                                    }
                                 } catch (IOException e) {
                                     throw new UncheckedIOException(e);
+                                }
+                                resolveSuccess[0] += resolver.getResolveSuccess();
+                                resolveFailed[0] += resolver.getResolveFailed();
+
+                                for (GraphEdge edge : resolver.getEdges()) {
+                                    String[] line = { edge.source().type(),
+                                            edge.source().name(), edge.type(), edge.target().type(),
+                                            edge.target().name() };
+                                    csvWriter.writeNext(line);
                                 }
                             });
                         } catch (IOException e) {
