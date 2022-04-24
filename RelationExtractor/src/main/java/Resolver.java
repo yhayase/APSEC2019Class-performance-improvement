@@ -1,3 +1,7 @@
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
@@ -8,33 +12,12 @@ import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Scanner;
-
 public class Resolver {
-    private HashMap<String, ArrayList<String>> classExtends;
-    private HashMap<String, ArrayList<String>> fieldsInClass;
-    private HashMap<String, ArrayList<String>> fieldType;
-    private HashMap<String, ArrayList<String>> methodsInClass;
-    private HashMap<String, ArrayList<String>> methodCall;
-    private HashMap<String, ArrayList<String>> fieldsInMethod;
-    private HashMap<String, ArrayList<String>> returnType;
+    private List<GraphEdge> edges;
 
-    private Map<String, String> methodASTPaths;
-
-    private HashSet<String> declarationClassSet;
-    private HashSet<String> extendedClassSet;
-    private HashSet<String> fieldInClassSet;
-    private HashSet<String> fieldTypeSet;
-    private HashSet<String> methodInClassSet;
-    private HashSet<String> fieldInMethodSet;
-    private HashSet<String> calleeSet;
-    private HashSet<String> returnTypeSet;
+    public List<GraphEdge> getEdges() {
+        return edges;
+    }
 
     private boolean doNameResolve;
     private int resolveSuccess;
@@ -49,65 +32,16 @@ public class Resolver {
     }
 
     Resolver() {
-        classExtends = new HashMap<>();
-        methodsInClass = new HashMap<>();
-        fieldsInClass = new HashMap<>();
-        methodCall = new HashMap<>();
-        fieldsInMethod = new HashMap<>();
-        returnType = new HashMap<>();
-        fieldType = new HashMap<>();
-
-        methodASTPaths = new HashMap<>();
-
         doNameResolve = true;
         resolveSuccess = 0;
         resolveFailed = 0;
 
-        declarationClassSet = new HashSet<>();
-        extendedClassSet = new HashSet<>();
-        fieldInClassSet = new HashSet<>();
-        fieldTypeSet = new HashSet<>();
-        methodInClassSet = new HashSet<>();
-        fieldInMethodSet = new HashSet<>();
-        calleeSet = new HashSet<>();
-        returnTypeSet = new HashSet<>();
+        edges = new LinkedList<>();
     }
 
     Resolver(boolean doNameResolve) {
         this();
         this.doNameResolve = doNameResolve;
-    }
-
-    public HashMap<String, ArrayList<String>> getClassExtends() {
-        return classExtends;
-    }
-
-    public HashMap<String, ArrayList<String>> getMethodsInClass() {
-        return methodsInClass;
-    }
-
-    public HashMap<String, ArrayList<String>> getFieldsInClass() {
-        return fieldsInClass;
-    }
-
-    public HashMap<String, ArrayList<String>> getMethodCall() {
-        return methodCall;
-    }
-
-    public HashMap<String, ArrayList<String>> getFieldsInMethod() {
-        return fieldsInMethod;
-    }
-
-    public HashMap<String, ArrayList<String>> getReturnType() {
-        return returnType;
-    }
-
-    public HashMap<String, ArrayList<String>> getFieldType() {
-        return fieldType;
-    }
-
-    public Map<String, String> getMethodASTPaths() {
-        return methodASTPaths;
     }
 
     public boolean isParam1inParam2(String part, String str) {
@@ -118,46 +52,6 @@ public class Resolver {
         }
     }
 
-    public HashMap<String, Integer> getEachElementNum() {
-        HashMap<String, Integer> countResults = new HashMap<>();
-        countResults.put("declarationClass", declarationClassSet.size());
-        countResults.put("extendedClass", extendedClassSet.size());
-        countResults.put("fieldInClass", fieldInClassSet.size());
-        countResults.put("fieldType", fieldTypeSet.size());
-        countResults.put("methodInClass", methodInClassSet.size());
-        countResults.put("fieldInMethod", fieldInMethodSet.size());
-        countResults.put("returnType", returnTypeSet.size());
-        return countResults;
-    }
-
-    public void refreshRelations() {
-        classExtends = new HashMap<>();
-        methodsInClass = new HashMap<>();
-        fieldsInClass = new HashMap<>();
-        methodCall = new HashMap<>();
-        fieldsInMethod = new HashMap<>();
-        returnType = new HashMap<>();
-        fieldType = new HashMap<>();
-    }
-
-    private void getRelationIfExists(HashMap<String, HashMap<String, ArrayList<String>>> relations, String relationName,
-            HashMap<String, ArrayList<String>> relation) {
-        if (!relation.isEmpty())
-            relations.put(relationName, relation);
-    }
-
-    public HashMap<String, HashMap<String, ArrayList<String>>> getRelations() {
-        HashMap<String, HashMap<String, ArrayList<String>>> relations = new HashMap<>();
-        getRelationIfExists(relations, "classExtends", getClassExtends());
-        getRelationIfExists(relations, "methodInClass", getMethodsInClass());
-        getRelationIfExists(relations, "fieldInClass", getFieldsInClass());
-        getRelationIfExists(relations, "methodCall", getMethodCall());
-        getRelationIfExists(relations, "fieldInMethod", getFieldsInMethod());
-        getRelationIfExists(relations, "returnType", getReturnType());
-        getRelationIfExists(relations, "fieldType", getFieldType());
-        return relations;
-    }
-
     public void execute(CompilationUnit compilationUnit) {
 
         compilationUnit.findAll(ClassOrInterfaceDeclaration.class).forEach(classOrInterfaceDeclaration -> {
@@ -165,88 +59,74 @@ public class Resolver {
                 return;
 
             String resolvedDeclarationClassName = resolveClass(classOrInterfaceDeclaration);
-            declarationClassSet.add(resolvedDeclarationClassName);
+            GraphNode classNode = new GraphNode(resolvedDeclarationClassName, "class");
 
             ArrayList<String> tmpArray;
 
             // 継承クラスの処理
             tmpArray = new ArrayList<>();
-            resolveExtendedClass(classOrInterfaceDeclaration, tmpArray, resolvedDeclarationClassName);
-            if (!tmpArray.isEmpty())
-                classExtends.put(resolvedDeclarationClassName, tmpArray);
+            resolveExtendedClass(classOrInterfaceDeclaration, tmpArray);
+            for (String extendedClassName : tmpArray) {
+                GraphNode extendedClassNode = new GraphNode(extendedClassName, "class");
+                edges.add(new GraphEdge(classNode, extendedClassNode, "extends"));
+            }
 
             classOrInterfaceDeclaration.findAll(FieldDeclaration.class).forEach(fieldDeclaration -> {
-                ArrayList<String> strings = new ArrayList<>();
-
                 String fieldName = resolvedDeclarationClassName + "."
                         + fieldDeclaration.getVariable(0).getNameAsString();
-                strings.add(fieldName);
-                if (fieldsInClass.containsKey(resolvedDeclarationClassName)) {
-                    fieldsInClass.get(resolvedDeclarationClassName).add(fieldName);
-                } else {
-                    fieldsInClass.put(resolvedDeclarationClassName, strings);
+                GraphNode fieldNode = new GraphNode(fieldName, "field");
+
+                edges.add(new GraphEdge(classNode, fieldNode, "has"));
+
+                ArrayList<String> strings;
+                strings = new ArrayList<>();
+                resolveFieldType(fieldDeclaration, strings);
+                for (String fieldTypeName : strings) {
+                    GraphNode fieldTypeNode = new GraphNode(fieldTypeName, "class");
+                    edges.add(new GraphEdge(fieldNode, fieldTypeNode, "type"));
                 }
-                fieldInClassSet.add(fieldName);
 
                 strings = new ArrayList<>();
-                resolveFieldType(fieldDeclaration, strings, resolvedDeclarationClassName);
-                fieldType.put(fieldName, strings);
-
-                strings = new ArrayList<>();
-                resolveNewInField(fieldDeclaration, strings, resolvedDeclarationClassName);
-                if (!strings.isEmpty())
-                    methodsInClass.put(resolvedDeclarationClassName, strings);
-
+                resolveNewInField(fieldDeclaration, strings);
+                for (String instantiatedTypeName : strings) {
+                    GraphNode instantiatedTypeNode = new GraphNode(instantiatedTypeName, "class");
+                    edges.add(new GraphEdge(fieldNode, instantiatedTypeNode, "new"));
+                }
             });
 
             classOrInterfaceDeclaration.findAll(MethodDeclaration.class).forEach(methodDeclaration -> {
-                ArrayList<String> strings = new ArrayList<>();
                 String declarationMethodName = resolvedDeclarationClassName + "." + methodDeclaration.getNameAsString();
-                strings.add(declarationMethodName);
-                if (methodsInClass.containsKey(resolvedDeclarationClassName)) {
-                    methodsInClass.get(resolvedDeclarationClassName).add(declarationMethodName);
-                } else {
-                    methodsInClass.put(resolvedDeclarationClassName, strings);
+                GraphNode declarationMethodNode = new GraphNode(declarationMethodName, "method");
+                edges.add(new GraphEdge(classNode, declarationMethodNode, "has"));
+
+                ArrayList<String> strings;
+                strings = new ArrayList<>();
+                resolveMethodCall(methodDeclaration, strings, resolvedDeclarationClassName);
+                for (String calleeName : strings) {
+                    GraphNode calleeNode = new GraphNode(calleeName, "method");
+                    edges.add(new GraphEdge(declarationMethodNode, calleeNode, "calls"));
                 }
 
                 strings = new ArrayList<>();
-                resolveMethodCall(methodDeclaration, strings, resolvedDeclarationClassName);
-                if (!strings.isEmpty())
-                    methodCall.put(declarationMethodName, strings);
+                resolveNewInMethod(methodDeclaration, strings);
+                for (String instantiatedTypeName : strings) {
+                    GraphNode instantiatedTypeNode = new GraphNode(instantiatedTypeName, "class");
+                    edges.add(new GraphEdge(declarationMethodNode, instantiatedTypeNode, "new"));
+                }
 
                 strings = new ArrayList<>();
-                resolveNewInMethod(methodDeclaration, strings, resolvedDeclarationClassName);
-                if (!strings.isEmpty())
-                    methodCall.put(declarationMethodName, strings);
+                resolveFieldAccess(methodDeclaration, strings);
+                for (String fieldName : strings) {
+                    GraphNode fieldNode = new GraphNode(fieldName, "field");
+                    edges.add(new GraphEdge(declarationMethodNode, fieldNode, "accesses"));
+                }
 
                 strings = new ArrayList<>();
-                resolveFieldAccess(methodDeclaration, strings, resolvedDeclarationClassName);
-                if (!strings.isEmpty())
-                    fieldsInMethod.put(declarationMethodName, strings);
-
-                strings = new ArrayList<>();
-                resolveReturnType(methodDeclaration, strings, resolvedDeclarationClassName);
-                returnType.put(declarationMethodName, strings);
-
-                // ProcessBuilder pb = new ProcessBuilder("java", "-cp",
-                // "JPredict/target/JavaExtractor-0.0.1-SNAPSHOT.jar", "JavaExtractor.App",
-                // "--max_path_length",
-                // "8", "--max_path_width", "2", "--num_threads", "64", "--file", "/dev/stdin");
-                // try {
-                // Process process = pb.start();
-                // try (PrintStream out = new PrintStream(process.getOutputStream())) {
-                // out.println(methodDeclaration);
-                // }
-
-                // try (Scanner sc = new Scanner(process.getInputStream())) {
-                // if (sc.hasNextLine()) { // 対象のメソッドが抽象メソッドである場合，false
-                // String line = sc.nextLine();
-                // methodASTPaths.put(declarationMethodName, line);
-                // }
-                // }
-                // } catch (IOException e) {
-                // System.err.println(e);
-                // }
+                resolveReturnType(methodDeclaration, strings);
+                for (String returnTypeName : strings) {
+                    GraphNode returnTypeNode = new GraphNode(returnTypeName, "class");
+                    edges.add(new GraphEdge(declarationMethodNode, returnTypeNode, "returns"));
+                }
             });
         });
     }
@@ -268,23 +148,15 @@ public class Resolver {
         }
     }
 
-    private void resolveExtendedClass(ClassOrInterfaceDeclaration classDeclaration, ArrayList<String> arrayList,
-            String resolvedDeclarationClassName) {
+    private void resolveExtendedClass(ClassOrInterfaceDeclaration classDeclaration, ArrayList<String> arrayList) {
         ClassOrInterfaceType parent;
         if (classDeclaration.getExtendedTypes().size() != 0) {
             parent = classDeclaration.getExtendedTypes(0);
             try {
                 parent = classDeclaration.getExtendedTypes(0).asClassOrInterfaceType();
             } catch (Throwable t) {
-                // System.out.println(resolvedDeclarationClassName);
             }
         } else {
-            // if (doNameResolve){
-            // arrayList.add("java.lang.Object");
-            // resolveSuccess++;
-            // } else {
-            // arrayList.add("Object");
-            // }
             return;
         }
 
@@ -292,72 +164,40 @@ public class Resolver {
         if (doNameResolve) {
             try {
                 name = parent.resolve().getQualifiedName();
-                // System.out.print("\r classExtends Resolve Success : " + name);
                 resolveSuccess++;
             } catch (Throwable t) {
-                // System.out.print("\r classExtends Resolve Failed : " + name + " @ ");
-                // System.out.println(resolvedDeclarationClassName);
                 resolveFailed++;
             }
             arrayList.add(name);
         } else {
             arrayList.add(name);
         }
-        extendedClassSet.add(name);
     }
 
-    private String resolveFieldInClass(FieldDeclaration fieldDeclaration, ArrayList<String> arrayList,
-            String filePath) {
-        String fieldName = fieldDeclaration.getVariable(0).getNameAsString();
-        if (!doNameResolve) {
-            arrayList.add(fieldName);
-            return fieldName;
-        }
-        try {
-            fieldName = fieldDeclaration.resolve().getType().asTypeVariable().qualifiedName() + "." + fieldName;
-            fieldName = fieldName;
-        } catch (Throwable t) {
-            fieldName = fieldName;
-        }
-        arrayList.add(fieldName);
-        return fieldName;
-    }
-
-    private void resolveFieldType(FieldDeclaration fieldDeclaration, ArrayList<String> arrayList, String filePath) {
+    private void resolveFieldType(FieldDeclaration fieldDeclaration, ArrayList<String> arrayList) {
         String name = fieldDeclaration.getVariable(0).getTypeAsString();
         if (doNameResolve) {
             try {
                 name = fieldDeclaration.getVariable(0).getType().resolve().describe();// .asClassOrInterfaceType().resolve().describe();
-                // System.out.print("\r fieldType Resolve Success : " + name);
                 resolveSuccess++;
             } catch (IllegalStateException i) {
-                // System.out.print("\r fieldType Resolve Success : " + name);
                 resolveSuccess++;
             } catch (UnsupportedOperationException t) {
                 if (name.equals("void")) {
-                    // System.out.print("\r returnType Resolve Success : " + name);
                     resolveSuccess++;
                 } else {
-                    // System.out.print("\r fieldType Resolve Failed : " + name + " -> " + "\n");
-                    // System.out.print(filePath);
-                    // System.out.println(" -> " + t.toString() + "\n");
                     resolveFailed++;
                 }
             } catch (Throwable t) {
-                // System.out.print("\r fieldType Resolve Failed : " + name + " @ ");
-                // System.out.print(filePath);
-                // System.out.println(" -> " + t.toString() + "\n");
                 resolveFailed++;
             }
             arrayList.add(name);
         } else {
             arrayList.add(name);
         }
-        fieldTypeSet.add(name);
     }
 
-    private void resolveNewInField(FieldDeclaration fieldDeclaration, ArrayList<String> arrayList,
-            String resolvedDeclarationClassName) {
+    private void resolveNewInField(FieldDeclaration fieldDeclaration, ArrayList<String> arrayList) {
         if (!fieldDeclaration.isInitializerDeclaration())
             return;
         fieldDeclaration.findAll(ObjectCreationExpr.class).forEach(objectCreationExpr -> {
@@ -369,32 +209,11 @@ public class Resolver {
                     name = objectCreationExpr.getType().resolve().describe() + "." + name;
                     resolveSuccess++;
                 } catch (Exception e) {
-                    // System.out.print("\r newInField Resolve Failed, newInField name : " + name);
-                    // System.out.println(" in a file of " + resolvedDeclarationClassName + ", class
-                    // is " + objectCreationExpr.getTypeAsString() + "\n");
                     resolveFailed++;
                 }
                 arrayList.add(name);
             }
-            methodInClassSet.add(name);
         });
-    }
-
-    private String resolveMethodInClass(MethodDeclaration declarationMethod, ArrayList<String> arrayList,
-            String filePath) {
-        String methodName = declarationMethod.getNameAsString();
-        if (!doNameResolve) {
-            arrayList.add(methodName);
-            return methodName;
-        }
-        try {
-            methodName = declarationMethod.resolve().getQualifiedName();
-            methodName = methodName;
-        } catch (Throwable t) {
-            methodName = methodName;
-        }
-        arrayList.add(methodName);
-        return methodName;
     }
 
     private void resolveMethodCall(MethodDeclaration methodDeclaration, ArrayList<String> arrayList,
@@ -410,47 +229,36 @@ public class Resolver {
                 }
                 try {
                     name = callee.getScope().get().calculateResolvedType().describe() + "." + name;
-                    // System.out.print("\r methodCall Resolve Success : " + name);
                     resolveSuccess++;
                 } catch (Throwable t) {
-                    // System.out.print("\r methodCall Resolve Failed, method name : " + name);
-                    // System.out.println(" in a file of " + resolvedDeclarationClassName + ", scope
-                    // is " + callee.getScope().get().toString() + "\n");
                     resolveFailed++;
                 }
                 arrayList.add(name);
             } else {
                 arrayList.add(name);
             }
-            calleeSet.add(name);
         });
     }
 
-    private void resolveNewInMethod(MethodDeclaration methodDeclaration, ArrayList<String> arrayList,
-            String resolvedDeclarationClassName) {
+    private void resolveNewInMethod(MethodDeclaration methodDeclaration, ArrayList<String> arrayList) {
         methodDeclaration.findAll(ObjectCreationExpr.class).forEach(objectCreationExpr -> {
             String name = objectCreationExpr.getTypeAsString();
 
             if (doNameResolve) {
                 try {
                     name = objectCreationExpr.getType().resolve().describe() + "." + name;
-                    // System.out.print("\r methodCall Resolve Success : " + name);
                     resolveSuccess++;
                 } catch (Throwable t) {
-                    // System.out.print("\r newInClass Resolve Failed, newInClass name : " + name);
-                    // System.out.println(" in a file of " + resolvedDeclarationClassName + ", class
-                    // is " + name + "\n");
                     resolveFailed++;
                 }
                 arrayList.add(name);
             } else {
                 arrayList.add(name);
             }
-            calleeSet.add(name);
         });
     }
 
-    private void resolveFieldAccess(MethodDeclaration declarationMethod, ArrayList<String> arrayList, String filePath) {
+    private void resolveFieldAccess(MethodDeclaration declarationMethod, ArrayList<String> arrayList) {
         declarationMethod.findAll(FieldAccessExpr.class).forEach(accessedField -> {
             if (accessedField.getParentNode().isPresent()) {
                 if (accessedField.getParentNode().get() instanceof FieldAccessExpr)
@@ -460,12 +268,8 @@ public class Resolver {
             if (doNameResolve) {
                 try {
                     name = accessedField.getScope().calculateResolvedType().describe() + "." + name;
-                    // System.out.print("\r fieldAccess Resolve Success : " + name);
                     resolveSuccess++;
                 } catch (Throwable t) {
-                    // System.out.print("\r fieldAccess Resolve Failed, field name : " + name);
-                    // System.out.println(", in a file of : " + filePath + ", scope is : " +
-                    // accessedField.getScope().toString() + "\n");
                     Expression scope = accessedField.getScope();
                     if (scope != null) {
                         if (isParam1inParam2("java", scope.toString())) {
@@ -479,62 +283,38 @@ public class Resolver {
             } else {
                 arrayList.add(name);
             }
-            fieldInMethodSet.add(name);
         });
     }
 
-    private void resolveReturnType(MethodDeclaration declarationMethod, ArrayList<String> arrayList, String filePath) {
+    private void resolveReturnType(MethodDeclaration declarationMethod, ArrayList<String> arrayList) {
         String name = declarationMethod.getType().asString();
         if (doNameResolve) {
             try {
                 name = declarationMethod.getType().resolve().describe();
-                // System.out.print("\r returnType Resolve Success : " + name);
                 resolveSuccess++;
             } catch (UnsupportedOperationException t) {
                 if (isParam1inParam2("PrimitiveTypeUsage", t.toString())) {
-                    // System.out.print("\r returnType Resolve Success : " + name);
                     resolveSuccess++;
                 } else if (name.equals("String")) {
                     name = "java.lang.String";
-                    // System.out.print("\r returnType Resolve Success : " + name);
                     resolveSuccess++;
                 } else if (name.equals("void")) {
-                    // System.out.print("\r returnType Resolve Success : " + name);
                     resolveSuccess++;
                 } else {
-                    // System.out.print("\r returnType Resolve Failed : " + name + " @ ");
-                    // System.out.print(filePath);
-                    // System.out.println(" -> " + t.toString() + "\n");
                     resolveFailed++;
                 }
             } catch (Throwable t) {
-                // System.out.print("\r returnType Resolve Failed : " + name + " @ ");
-                // System.out.print(filePath);
-                // System.out.println(" -> " + t.toString() + "\n");
                 resolveFailed++;
             }
             arrayList.add(name);
         } else {
             arrayList.add(name);
         }
-        returnTypeSet.add(name);
     }
+}
 
-    /**
-     * 文字の整形
-     * 
-     * @param letter
-     * @return 整形済みの文字列
-     */
-    private String formatter(String letter) {
-        String[] str = letter.split("");
-        StringBuilder value = new StringBuilder();
-        for (String tmp : str) {
-            if (!tmp.matches("[0-9a-zA-Z._]"))
-                break;
-            value.append(tmp);
-        }
-        return value.toString();
-    }
+record GraphNode(String name, String type) {
+}
 
+record GraphEdge(GraphNode source, GraphNode target, String type) {
 }

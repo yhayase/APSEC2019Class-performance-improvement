@@ -1,13 +1,11 @@
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.stream.Stream;
 
@@ -18,6 +16,7 @@ import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
+import com.opencsv.CSVWriter;
 
 import org.apache.commons.io.FilenameUtils;
 
@@ -34,7 +33,9 @@ public class Main {
     public static void main(String[] args) throws IOException, InterruptedException {
         Path dataRoot = Paths.get("data").toAbsolutePath().normalize();
         Path rawDataDir = dataRoot.resolve("processed_data");
+
         Path inputDir = dataRoot.resolve("relations");
+        Files.createDirectory(inputDir);
 
         /*
          * 異常に処理に時間がかかるプロジェクトがあった場合，一旦処理を中止してそのプロジェクトを除外してから，途中から処理を再開できるようにするためのファイル
@@ -50,7 +51,11 @@ public class Main {
         try (Stream<Path> rawRoleDirs = Files.list(rawDataDir)) {
             rawRoleDirs.forEach(rawRoleDir -> {
                 Path roleName = rawRoleDir.getFileName();
-                Path destDirAbsPath = inputDir.resolve(roleName);
+                try {
+                    Files.createDirectory(inputDir.resolve(roleName));
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
 
                 try (Stream<Path> projectStream = Files.list(rawRoleDir).filter(Files::isDirectory)) {
                     projectStream.forEach(projectRootDir -> {
@@ -60,6 +65,8 @@ public class Main {
                         System.out.println("\n\n-----\n");
                         System.out.println(projectRootDir.getFileName());
 
+                        Path csvPath = inputDir.resolve(roleName).resolve(projectName + ".csv");
+
                         if (ignoredProjectNamesWithSubsetNames.contains(projectName)) {
                             return;
                         }
@@ -67,9 +74,8 @@ public class Main {
                         // java-med, java-large, java-large, java-large, java-large, java-large,
                         // java-large, java-large
                         List<String> ignoredProjectNames1 = List.of("apache__hive",
-                                "GoogleCloudPlatform__google-cloud-java",
-                                "clementine-player__Android-Remote", "oVirt__ovirt-engine", "VUE__VUE", "palatable__lambda",
-                                "amutu__tdw",
+                                "GoogleCloudPlatform__google-cloud-java", "clementine-player__Android-Remote",
+                                "oVirt__ovirt-engine", "VUE__VUE", "palatable__lambda", "amutu__tdw",
                                 "usethesource__capsule");
 
                         if (ignoredProjectNames1.contains(projectName)) {
@@ -92,37 +98,36 @@ public class Main {
                         JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedSolver);
                         JavaParser.getStaticConfiguration().setSymbolResolver(symbolSolver);
 
-                        // String out = cmd.getOptionValue("outputdir");
-
                         /*
                          * 取得元ディレクトリからJavaファイルを再帰的に探索
                          */
                         try (Stream<Path> javaFileStream = Files.walk(projectRootDir)
                                 .filter(path -> Files.isRegularFile(path)
                                         && FilenameUtils.getExtension(path.toAbsolutePath().toString())
-                                                .equals("java"))) {
+                                                .equals("java"));
+                                CSVWriter csvWriter = new CSVWriter(new FileWriter(csvPath.toFile()))) {
+
                             javaFileStream.forEach(javaFile -> {
                                 FILE_NUM[0] += 1;
-
-                                Path javaFileRelPath = rawRoleDir.relativize(javaFile);
-                                Path jsonFileRelPath = javaFileRelPath
-                                        .resolveSibling(javaFileRelPath.getFileName() + ".json");
 
                                 System.out.print("\r");
                                 System.out.print("Parsing : " + javaFile.getFileName());
 
+                                Resolver resolver = new Resolver(true);
                                 try {
                                     CompilationUnit cu = JavaParser.parse(javaFile);
-
-                                    Resolver resolver = new Resolver(true);
                                     resolver.execute(cu);
-
-                                    resolveSuccess[0] += resolver.getResolveSuccess();
-                                    resolveFailed[0] += resolver.getResolveFailed();
-
-                                    makeJsons(resolver, destDirAbsPath, jsonFileRelPath);
                                 } catch (IOException e) {
                                     throw new UncheckedIOException(e);
+                                }
+                                resolveSuccess[0] += resolver.getResolveSuccess();
+                                resolveFailed[0] += resolver.getResolveFailed();
+
+                                for (GraphEdge edge : resolver.getEdges()) {
+                                    String[] line = { edge.source().type(),
+                                            edge.source().name(), edge.type(), edge.target().type(),
+                                            edge.target().name() };
+                                    csvWriter.writeNext(line);
                                 }
                             });
                         } catch (IOException e) {
@@ -144,7 +149,6 @@ public class Main {
                     throw new UncheckedIOException(e);
                 }
             });
-
         }
 
         long time = System.nanoTime() - start;
@@ -155,17 +159,5 @@ public class Main {
         System.out.println("totalResolveSuccess : " + totalResolveSuccess[0]);
         System.out.println("totalResolveFailed : " + totalResolveFailed[0]);
         System.out.println("FILE_NUM : " + FILE_NUM[0]);
-    }
-
-    private static List<Path> makeJsons(Resolver resolver, Path destDirAbsPath, Path jsonRelPath)
-            throws IOException {
-        List<Path> jsonFiles = new ArrayList<>();
-        for (Entry<String, HashMap<String, ArrayList<String>>> relation : resolver.getRelations().entrySet()) {
-            JsonGenerator jsonGenerator = new JsonGenerator(relation.getValue(), true);
-            Path jsonFile = destDirAbsPath.resolve(relation.getKey()).resolve(jsonRelPath);
-            jsonGenerator.saveFile(jsonFile.toString());
-            jsonFiles.add(jsonFile);
-        }
-        return jsonFiles;
     }
 }
