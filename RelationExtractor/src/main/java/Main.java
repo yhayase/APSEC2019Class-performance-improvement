@@ -37,12 +37,6 @@ public class Main {
         Path inputDir = dataRoot.resolve("relations");
         Files.createDirectory(inputDir);
 
-        /*
-         * 異常に処理に時間がかかるプロジェクトがあった場合，一旦処理を中止してそのプロジェクトを除外してから，途中から処理を再開できるようにするためのファイル
-         */
-        Path tmp = dataRoot.resolve("tmp");
-        List<String> ignoredProjectNamesWithSubsetNames = Files.readAllLines(tmp);
-
         Random rand = new Random(0L);
         rand.nextInt(5);
 
@@ -66,10 +60,6 @@ public class Main {
                         System.out.println(projectRootDir.getFileName());
 
                         Path csvPath = inputDir.resolve(roleName).resolve(projectName + ".csv");
-
-                        if (ignoredProjectNamesWithSubsetNames.contains(projectName)) {
-                            return;
-                        }
 
                         // java-med, java-large, java-large, java-large, java-large, java-large,
                         // java-large, java-large
@@ -134,11 +124,6 @@ public class Main {
                             throw new UncheckedIOException(e);
                         }
 
-                        try {
-                            Files.write(tmp, List.of(projectName), StandardOpenOption.APPEND);
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
                         totalResolveSuccess[0] += resolveSuccess[0];
                         totalResolveFailed[0] += resolveFailed[0];
                         System.out.println();
