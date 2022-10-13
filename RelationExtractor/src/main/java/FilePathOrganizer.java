@@ -15,7 +15,7 @@ import org.apache.commons.io.FilenameUtils;
 public class FilePathOrganizer {
     public static void main(String[] args) throws IOException {
         Path dataRoot = Paths.get("data").toAbsolutePath().normalize();
-        Path rawDataDir = dataRoot.resolve("raw");
+        Path rawDataDir = dataRoot.resolve("resplit");
         Path processedDataDir = dataRoot.resolve("processed_data");
 
         try (Stream<Path> roleDirs = Files.list(rawDataDir)) {
