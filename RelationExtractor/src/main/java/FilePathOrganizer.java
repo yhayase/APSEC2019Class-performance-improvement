@@ -52,6 +52,8 @@ public class FilePathOrganizer {
                                     Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
                                 } catch (ParseProblemException p) {
                                     System.out.println(p);
+                                } catch (StackOverflowError e) {
+                                    System.err.println(e);
                                 } catch (IOException e) {
                                     throw new UncheckedIOException(e);
                                 }
