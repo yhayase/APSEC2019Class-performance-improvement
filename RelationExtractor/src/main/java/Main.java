@@ -61,12 +61,8 @@ public class Main {
 
                         Path csvPath = inputDir.resolve(roleName).resolve(projectName + ".csv");
 
-                        // java-med, java-large, java-large, java-large, java-large, java-large,
-                        // java-large, java-large
-                        List<String> ignoredProjectNames1 = List.of("apache__hive",
-                                "GoogleCloudPlatform__google-cloud-java", "clementine-player__Android-Remote",
-                                "oVirt__ovirt-engine", "VUE__VUE", "palatable__lambda", "amutu__tdw",
-                                "usethesource__capsule");
+                        // java-med
+                        List<String> ignoredProjectNames1 = List.of("apache__hive");
 
                         if (ignoredProjectNames1.contains(projectName)) {
                             return;
