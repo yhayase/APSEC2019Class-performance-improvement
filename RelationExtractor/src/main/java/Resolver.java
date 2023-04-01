@@ -11,6 +11,7 @@ import com.github.javaparser.ast.expr.FieldAccessExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.resolution.types.ResolvedReferenceType;
 
 public class Resolver {
     private List<GraphEdge> edges;
@@ -163,8 +164,14 @@ public class Resolver {
         String name = parent.getNameAsString();
         if (doNameResolve) {
             try {
-                name = parent.resolve().getQualifiedName();
-                resolveSuccess++;
+                var resolvedType = parent.resolve();
+                if (resolvedType.isReferenceType()) {
+                    ResolvedReferenceType resolvedReferenceType = resolvedType.asReferenceType();
+                    name = resolvedReferenceType.getQualifiedName();
+                    resolveSuccess++;
+                } else {
+                    resolveFailed ++;
+                }
             } catch (Throwable t) {
                 resolveFailed++;
             }

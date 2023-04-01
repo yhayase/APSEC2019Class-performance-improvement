@@ -6,8 +6,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.stream.Stream;
 
-import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseProblemException;
+import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 
 import org.apache.commons.io.FilenameUtils;
@@ -28,7 +28,7 @@ public class FilePathOrganizer {
                                                 .equals("java"))) {
                             javaFileStream.forEach(javaFile -> {
                                 try {
-                                    CompilationUnit cu = JavaParser.parse(javaFile);
+                                    CompilationUnit cu = StaticJavaParser.parse(javaFile);
                                     String filePathInPackage;
                                     if (cu.getPackageDeclaration().isPresent()) {
                                         filePathInPackage = cu.getPackageDeclaration().get().getNameAsString().replace(
