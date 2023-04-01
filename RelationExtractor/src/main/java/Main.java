@@ -178,11 +178,8 @@ public class Main {
             });
         }
 
-        long time = System.nanoTime() - start;
-        int hour = (int) (time / 3600000000000L);
-        int minute = (int) ((time - (long) hour * 3600000000000L) / 60000000000L);
-        int second = (int) ((time - (long) hour * 3600000000000L) - (long) minute * 60000000000L / 1000000000L);
-        System.out.println("parse & resolve time : " + hour + "時間" + minute + "分" + second + "秒");
+        var duration = Duration.ofNanos(System.nanoTime() - start);
+        System.out.printf("parse & resolve time : %d:%02d:%02d\n", duration.toHours(), duration.toMinutesPart(), duration.toSecondsPart());
         System.out.println("totalResolveSuccess : " + totalResolveSuccess[0]);
         System.out.println("totalResolveFailed : " + totalResolveFailed[0]);
         System.out.println("FILE_NUM : " + FILE_NUM[0]);
